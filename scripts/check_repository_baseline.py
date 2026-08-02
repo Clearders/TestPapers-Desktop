@@ -32,6 +32,31 @@ REQUIRED_FILES = (
     "SECURITY.md",
     "scripts/check_repository_baseline.py",
 )
+DESKTOP_CONTRACT_FILES = (
+    "contracts/contract.lock.json",
+    "contracts/openapi-generator-config.json",
+    "contracts/openapi.json",
+    "contracts/cloud-api-rust/Cargo.toml",
+    "contracts/cloud-api-rust/src/adapter.rs",
+    "contracts/cloud-api-rust/tests/adapter.rs",
+    "scripts/check_cloud_api_rust.py",
+    "scripts/cloud_api_codegen.py",
+    "scripts/regenerate_cloud_api_rust.py",
+)
+DESKTOP_ALLOWED_MANIFESTS = {"contracts/cloud-api-rust/Cargo.toml"}
+DESKTOP_APP_SCAFFOLD_FILES = {
+    "package.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "bun.lock",
+    "bun.lockb",
+    "vite.config.js",
+    "vite.config.mjs",
+    "vite.config.ts",
+    "tauri.conf.json",
+    "tauri.conf.json5",
+}
+IGNORED_DIRECTORY_NAMES = {".git", ".cache", "node_modules", "target"}
 MANIFEST_NAMES = {
     "Cargo.toml",
     "package.json",
@@ -64,7 +89,7 @@ FORBIDDEN_REPOSITORIES = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate the code-neutral TestPapers repository governance baseline."
+        description="Validate the TestPapers repository governance and contract baseline."
     )
     parser.add_argument("--repository", required=True, choices=sorted(REPOSITORIES))
     return parser.parse_args()
@@ -92,6 +117,12 @@ def validate(repository: str, root: Path) -> list[str]:
         candidate = root / relative
         if not candidate.is_file() or candidate.stat().st_size == 0:
             errors.append(f"missing or empty required file: {relative}")
+
+    if repository == "TestPapers-Desktop":
+        for relative in DESKTOP_CONTRACT_FILES:
+            candidate = root / relative
+            if not candidate.is_file() or candidate.stat().st_size == 0:
+                errors.append(f"missing or empty Desktop contract file: {relative}")
 
     readme = read_utf8(root / "README.md", errors)
     required_readme_tokens = (
@@ -128,9 +159,9 @@ def validate(repository: str, root: Path) -> list[str]:
         re.IGNORECASE,
     )
     for path in root.rglob("*"):
-        if ".git" in path.parts:
-            continue
         relative = path.relative_to(root)
+        if any(part in IGNORED_DIRECTORY_NAMES for part in relative.parts):
+            continue
         if path.is_symlink() and not path.resolve().is_relative_to(root.resolve()):
             errors.append(f"external symlink is forbidden: {relative.as_posix()}")
         if path.is_file() and matches_secret(path):
@@ -142,6 +173,24 @@ def validate(repository: str, root: Path) -> list[str]:
             if relative_dependency.search(content):
                 errors.append(
                     f"cross-repository relative dependency is forbidden: {relative.as_posix()}"
+                )
+            if (
+                repository == "TestPapers-Desktop"
+                and relative.as_posix() not in DESKTOP_ALLOWED_MANIFESTS
+            ):
+                errors.append(
+                    "Desktop application scaffold is deferred; unexpected manifest: "
+                    f"{relative.as_posix()}"
+                )
+        if repository == "TestPapers-Desktop" and path.is_file():
+            if (
+                path.name in DESKTOP_APP_SCAFFOLD_FILES
+                or path.suffix == ".vue"
+                or "src-tauri" in relative.parts
+            ):
+                errors.append(
+                    "Desktop application scaffold is deferred; unexpected file: "
+                    f"{relative.as_posix()}"
                 )
 
     return errors
