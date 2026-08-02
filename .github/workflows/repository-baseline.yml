@@ -24,3 +24,8 @@ jobs:
 
       - name: Validate repository governance
         run: python scripts/check_repository_baseline.py --repository TestPapers-Desktop
+
+      - name: Validate environment contract
+        run: |
+          python scripts/check_environment_contract.py
+          python -m unittest tests/test_environment_contract.py
