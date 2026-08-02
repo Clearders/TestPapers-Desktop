@@ -3,7 +3,7 @@
   "source": {
     "repository": "https://github.com/Clearders/TestPaper-backend",
     "ref": "api-v1.0.0",
-    "commit": "fd224f995f8613ecb8ee983e3f413f330e6f322c",
+    "commit": "69f5cb07bda754163a77bc3170e8c25da3abaf0e",
     "sha256": "ea8b061155a121319f983b70ca271dc7a6abfc1743d84a218835f247bdca7ed5"
   },
   "generator": {
