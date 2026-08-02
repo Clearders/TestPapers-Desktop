@@ -1,0 +1,40 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Node / Vue
+node_modules/
+dist/
+.nuxt/
+.output/
+coverage/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+
+# Local databases and generated exports
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+exports/
+
+# Test and tool caches
+.cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
