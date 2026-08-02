@@ -1,0 +1,15 @@
+{
+  "generatorName": "rust",
+  "additionalProperties": {
+    "hideGenerationTimestamp": true,
+    "library": "reqwest",
+    "packageName": "testpapers-cloud-api",
+    "packageVersion": "1.0.0",
+    "supportAsync": true,
+    "useSingleRequestParameter": true
+  },
+  "globalProperties": {
+    "apiTests": false,
+    "modelTests": false
+  }
+}

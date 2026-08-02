@@ -1,0 +1,29 @@
+{
+  "apiVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/Clearders/TestPaper-backend",
+    "ref": "api-v1.0.0",
+    "commit": "fd224f995f8613ecb8ee983e3f413f330e6f322c",
+    "sha256": "ea8b061155a121319f983b70ca271dc7a6abfc1743d84a218835f247bdca7ed5"
+  },
+  "generator": {
+    "name": "openapi-generator-cli",
+    "version": "7.24.0",
+    "artifactSha256": "4b83ccc6fd43056c8c631cd0195e5100bd0550912502527bab09ac76152dab0c",
+    "config": {
+      "generatorName": "rust",
+      "additionalProperties": {
+        "hideGenerationTimestamp": true,
+        "library": "reqwest",
+        "packageName": "testpapers-cloud-api",
+        "packageVersion": "1.0.0",
+        "supportAsync": true,
+        "useSingleRequestParameter": true
+      },
+      "globalProperties": {
+        "apiTests": false,
+        "modelTests": false
+      }
+    }
+  }
+}

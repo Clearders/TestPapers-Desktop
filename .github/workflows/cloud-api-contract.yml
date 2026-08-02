@@ -1,0 +1,47 @@
+name: Cloud API Rust Contract
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-api-rust-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Cloud API Rust contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal --component rustfmt
+          rustup default 1.94.1
+          rustc --version
+
+      - name: Check generated contract drift
+        run: python scripts/check_cloud_api_rust.py
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path contracts/cloud-api-rust/Cargo.toml -- --check
+
+      - name: Check Rust contract crate
+        run: cargo check --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
+
+      - name: Test Rust contract crate
+        run: cargo test --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
