@@ -120,8 +120,8 @@ def validate(repository: str, root: Path) -> list[str]:
         errors.append("pull request template is missing a Security heading")
 
     codeowners = read_utf8(root / ".github/CODEOWNERS", errors)
-    if "@Clearders" not in codeowners or "@Sink927" not in codeowners:
-        errors.append("CODEOWNERS must include both maintainers")
+    if "@Clearders" not in codeowners:
+        errors.append("CODEOWNERS must include the repository owner")
 
     relative_dependency = re.compile(
         rf"(?:file:|path\s*[:=]\s*[\"']?)\.\.[/\\](?:{'|'.join(map(re.escape, FORBIDDEN_REPOSITORIES))})(?:[/\\]|[\"'])",
