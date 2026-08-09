@@ -1,71 +1,60 @@
 # TestPapers Desktop
 
-Desktop application repository for the TestPapers Platform v2.
+Tauri 2 + Vue 3 desktop application for the TestPapers Platform v2.
 
-> Status: the generated Rust Cloud API contract package exists; the Tauri/Vue application scaffold remains deferred.
+> Status: CLE-23 provides the minimal desktop shell; question-bank, paper-authoring, SQLite, Local Engine, synchronization, signing, and updating remain deferred.
 > Runtime owner: Desktop team.
 > Release unit: signed Desktop installer and its bundled Rust Local Engine.
-> Bootstrap issue: [CLE-58](https://linear.app/clearders/issue/CLE-58).
+> Repository bootstrap: [CLE-58](https://linear.app/clearders/issue/CLE-58); desktop shell: [CLE-23](https://linear.app/clearders/issue/CLE-23).
 
-## Responsibilities
+## What is implemented
 
-This repository will own the Tauri/Vue Desktop UI, Rust Local Engine, SQLite migrations, offline question-bank and paper-authoring workflows, local generation/export, backup/restore, and the Desktop synchronization adapter.
+- A single local-only window, initially hidden until Vue applies the effective theme and calls `frontend_ready`.
+- Native application, file, theme, and tray menus, with tray-unavailable fallback behavior.
+- System/light/dark theme preferences and `ask`/`quit`/`tray` close behavior persisted in the application data directory as `settings.v1.json`.
+- CSV/JSON import and DOCX/TeX export dialog previews that return only cancellation state and basenames; they do not read or write files.
+- A versioned, camelCase IPC boundary exposed only through `src/infrastructure/tauri/shellBridge.ts`.
+- The standalone generated Cloud contract package under `contracts/cloud-api-rust`; the desktop shell does not link or start it.
 
-The canonical repository topology, runtime boundaries, and dependency direction are defined by [ADR-0001](https://github.com/Clearders/TestPapers/blob/main/docs/adr/0001-platform-repository-and-runtime-boundaries.md).
+The canonical topology and dependency direction are defined by [ADR-0001](https://github.com/Clearders/TestPapers/blob/main/docs/adr/0001-platform-repository-and-runtime-boundaries.md). See [docs/architecture.md](docs/architecture.md) for the shell boundary and [docs/ipc.md](docs/ipc.md) for the public command/event allowlist.
 
-## Current scope
+## Deferred scope
 
-The M1 baseline contains repository governance plus the standalone `contracts/cloud-api-rust` package generated from the pinned Cloud OpenAPI contract. The package is a Rust 1.94.1 `reqwest` client and includes a small handwritten native adapter that injects Bearer authentication and returns download bytes with their response headers intact.
+CLE-23 does not create a database, start a local service, call Cloud, or implement import/export contents. Those surfaces belong to CLE-24/25/26/27/52. No fs, SQL, shell, HTTP, remote WebView, global Tauri object, updater, or signing permission is enabled.
 
-The repository still intentionally does not contain:
+The generated Cloud package validates the hardened native API contract only. It is not a shipping authentication runtime, and no credential or token persistence is implemented here.
 
-- a Tauri, Vue, Node, or SQLite application scaffold;
-- Desktop application or Local Engine source;
-- signing keys, update credentials, cloud tokens, or other secrets.
+## Development
 
-[CLE-23](https://linear.app/clearders/issue/CLE-23) will generate the Tauri/Vue shell in this existing repository. [CLE-24](https://linear.app/clearders/issue/CLE-24) and [CLE-25](https://linear.app/clearders/issue/CLE-25) will add the Local Engine IPC and SQLite data layer.
-
-The v1.1 generated package validates the hardened native token and refresh API contract only. It does not claim a shipping authentication runtime or token persistence implementation: operating-system secure storage and application-level refresh handling remain acceptance criteria for the future Desktop authentication work.
-
-## Dependency rules
-
-- Do not add source-level relative-path dependencies on `TestPapers`, `TestPaper-backend`, or `TestPapers-Mobile`.
-- Consume Cloud behavior only through a pinned, versioned OpenAPI contract or generated client established by [CLE-14](https://linear.app/clearders/issue/CLE-14).
-- Do not import SQLAlchemy models, Alembic migrations, Cloud repositories, Celery tasks, or Redis configuration.
-- The future Vue UI must use typed, allowlisted Tauri commands/events; it must not issue SQL or unrestricted filesystem operations.
-- Port reusable behavior with provenance and parity tests instead of coupling repository checkouts.
-
-## Repository validation
-
-Run the repository and Cloud contract checks locally:
+Prerequisites are Node.js 24.x, npm, Rust 1.94.1, and the platform prerequisites for Tauri 2. Java and Python are not desktop runtime dependencies; Java 21 is used only by Cloud contract drift CI, and Python is used by repository validators.
 
 ```bash
+npm ci
+npm run dev
+```
+
+Run the local gates:
+
+```bash
+npm run verify
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+npm run build:desktop
 python scripts/check_repository_baseline.py --repository TestPapers-Desktop
-python scripts/check_cloud_api_rust.py
-cargo fmt --manifest-path contracts/cloud-api-rust/Cargo.toml -- --check
-cargo check --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
-cargo test --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
-```
-
-Contract regeneration requires Java 17 or newer and the pinned Rust 1.94.1 toolchain:
-
-```bash
-python scripts/regenerate_cloud_api_rust.py
-```
-
-Regeneration uses only the committed `contracts/openapi.json`, `contracts/contract.lock.json`, and `contracts/openapi-generator-config.json`; it never reads another repository checkout. The lock pins the backend release identity, contract SHA-256, OpenAPI Generator 7.24.0 JAR SHA-256, and the Rust/reqwest settings.
-
-The `Repository baseline` and `Cloud API Rust contract` GitHub checks run for pull requests and pushes to `main`. Application-specific checks will be added by their owning Linear issues.
-
-## Environment and toolchain
-
-Copy `.env.example` to an ignored `.env` when preparing the future Desktop application. The current code-neutral contract covers all five platform profiles, local SQLite/data/export paths, and offline/local/staging/production Cloud API selection without credentials. Desktop itself does not require PostgreSQL, Redis, Celery, object storage, or Python; Python is used only by repository-validation tooling.
-
-```bash
 python scripts/check_environment_contract.py
 python -m unittest tests/test_environment_contract.py
 ```
 
-See [docs/environment.md](docs/environment.md) for profile semantics and the four-repository toolchain matrix.
+`TESTPAPERS_DESKTOP_SMOKE=1` makes a built application exit immediately after the Vue-ready handshake. `node scripts/smoke-desktop.mjs` runs the real binary and requires both `ready` and idempotent `cleanup` log markers.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the change workflow and [SECURITY.md](SECURITY.md) for vulnerability reporting.
+## Dependency rules
+
+- Do not add source-level relative-path dependencies on `TestPapers`, `TestPaper-backend`, or `TestPapers-Mobile`.
+- Consume Cloud behavior only through a pinned contract boundary; do not start Cloud during desktop bootstrap.
+- Do not import Cloud persistence, migrations, workers, or infrastructure configuration.
+- Vue components and composables must use the typed desktop adapter, never Tauri `invoke` or event APIs directly.
+- Keep IPC allowlisted and DTOs versioned; never return an absolute path from a dialog preview.
+- Record provenance and parity tests when porting Web behavior or assets.
+
+See [docs/environment.md](docs/environment.md), [docs/provenance.md](docs/provenance.md), [docs/manual-smoke.md](docs/manual-smoke.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [SECURITY.md](SECURITY.md).

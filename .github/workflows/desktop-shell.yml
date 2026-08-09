@@ -1,0 +1,117 @@
+name: Desktop Shell
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-shell-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast:
+    name: Frontend, Rust, and repository gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Set up Java 21 for contract drift only
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal --component rustfmt,clippy
+          rustup default 1.94.1
+          rustc --version
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Verify frontend
+        run: npm run verify
+
+      - name: Verify desktop Rust
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+          cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Verify repository and environment contracts
+        run: |
+          python scripts/check_repository_baseline.py --repository TestPapers-Desktop
+          python scripts/check_environment_contract.py
+          python -m unittest tests/test_environment_contract.py
+
+      - name: Verify Cloud contract drift and generated crate
+        run: |
+          python scripts/check_cloud_api_rust.py
+          cargo fmt --manifest-path contracts/cloud-api-rust/Cargo.toml -- --check
+          cargo check --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
+          cargo test --manifest-path contracts/cloud-api-rust/Cargo.toml --locked
+
+  native:
+    name: Native debug smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install Tauri Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf xvfb
+
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal
+          rustup default 1.94.1
+          rustc --version
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build unsigned debug executable
+        run: npm run build:desktop
+
+      - name: Smoke native executable on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-desktop.mjs
+
+      - name: Smoke native executable
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-desktop.mjs

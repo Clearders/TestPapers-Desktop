@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Narrow local-only capability for the TestPapers Desktop main window.",
+  "local": true,
+  "windows": ["main"],
+  "platforms": ["linux", "macOS", "windows"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-get-shell-context",
+    "allow-frontend-ready",
+    "allow-set-theme-preference",
+    "allow-set-close-behavior",
+    "allow-resolve-close-request",
+    "allow-preview-question-import-dialog",
+    "allow-preview-paper-export-dialog"
+  ]
+}

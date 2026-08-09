@@ -10,8 +10,8 @@
 
 1. Branch from the current protected `main`.
 2. Keep one primary pull request per Linear issue; link companion PRs when a change spans repositories.
-3. Run `python scripts/check_repository_baseline.py --repository TestPapers-Desktop` before pushing.
-4. Add application-specific lint, test, build, migration, security, and packaging evidence once those surfaces exist.
+3. Run `npm run verify`, the Rust fmt/clippy/test gates, and `python scripts/check_repository_baseline.py --repository TestPapers-Desktop` before pushing.
+4. For native changes, run `npm run build:desktop` and `node scripts/smoke-desktop.mjs`; include manual platform evidence when behavior is platform-specific.
 5. Complete every section of the pull request template and request a code-owner review.
 
 ## Architecture rules
@@ -20,6 +20,7 @@
 - Do not introduce relative-path source dependencies on another TestPapers application repository.
 - Keep credentials, signing material, update keys, and production configuration out of Git.
 - Prefer typed, narrow interfaces and backward-compatible Cloud contract changes.
+- Keep Tauri calls inside the single typed frontend adapter and update the capability allowlist for every IPC change.
 - Record provenance and parity tests when porting behavior from Web or Cloud.
 
 ## Commit and pull request quality
