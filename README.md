@@ -25,6 +25,8 @@ The repository still intentionally does not contain:
 
 [CLE-23](https://linear.app/clearders/issue/CLE-23) will generate the Tauri/Vue shell in this existing repository. [CLE-24](https://linear.app/clearders/issue/CLE-24) and [CLE-25](https://linear.app/clearders/issue/CLE-25) will add the Local Engine IPC and SQLite data layer.
 
+The v1.1 generated package validates the hardened native token and refresh API contract only. It does not claim a shipping authentication runtime or token persistence implementation: operating-system secure storage and application-level refresh handling remain acceptance criteria for the future Desktop authentication work.
+
 ## Dependency rules
 
 - Do not add source-level relative-path dependencies on `TestPapers`, `TestPaper-backend`, or `TestPapers-Mobile`.

@@ -47,7 +47,7 @@ GENERATED_DIRECTORIES = (Path("docs"), Path("src/apis"), Path("src/models"))
 
 NESTED_MODELS_DEFECT = "models::models::"
 UNTYPED_ANY_OF_DEFECT = "models::AnyOfLessThanGreaterThan"
-EXPECTED_NESTED_MODELS_DEFECTS = 6
+EXPECTED_NESTED_MODELS_DEFECTS = 8
 EXPECTED_UNTYPED_ANY_OF_DEFECTS = 1
 
 

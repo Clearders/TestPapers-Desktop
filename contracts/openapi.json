@@ -8,6 +8,16 @@
             "title": "Event",
             "type": "string"
           },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
           "payload": {
             "$ref": "#/components/schemas/AuthConnectedPayload"
           }
@@ -55,6 +65,406 @@
         "title": "AuthSession",
         "type": "object"
       },
+      "BankAccessRole": {
+        "enum": [
+          "owner",
+          "admin",
+          "editor",
+          "viewer"
+        ],
+        "title": "BankAccessRole",
+        "type": "string"
+      },
+      "BankCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/BankVisibility",
+            "default": "private"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "BankCreate",
+        "type": "object"
+      },
+      "BankForkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "title": "BankForkRequest",
+        "type": "object"
+      },
+      "BankItemAdd": {
+        "additionalProperties": false,
+        "properties": {
+          "questionIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Questionids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questionIds"
+        ],
+        "title": "BankItemAdd",
+        "type": "object"
+      },
+      "BankListScope": {
+        "enum": [
+          "visible",
+          "owned",
+          "subscribed",
+          "public"
+        ],
+        "title": "BankListScope",
+        "type": "string"
+      },
+      "BankMemberCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/BankRole"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "role"
+        ],
+        "title": "BankMemberCreate",
+        "type": "object"
+      },
+      "BankMemberEntity": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/BankRole"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/BankUserRef"
+          }
+        },
+        "required": [
+          "user",
+          "role",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "BankMemberEntity",
+        "type": "object"
+      },
+      "BankMemberUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/BankRole"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "BankMemberUpdate",
+        "type": "object"
+      },
+      "BankPublicationEntity": {
+        "properties": {
+          "bankId": {
+            "title": "Bankid",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "state": {
+            "additionalProperties": true,
+            "title": "State",
+            "type": "object"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "withdrawnAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Withdrawnat"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "bankId",
+          "version",
+          "state",
+          "createdAt"
+        ],
+        "title": "BankPublicationEntity",
+        "type": "object"
+      },
+      "BankRole": {
+        "enum": [
+          "viewer",
+          "editor"
+        ],
+        "title": "BankRole",
+        "type": "string"
+      },
+      "BankSubscriptionEntity": {
+        "properties": {
+          "bankId": {
+            "title": "Bankid",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "integer"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "bankId",
+          "userId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "BankSubscriptionEntity",
+        "type": "object"
+      },
+      "BankSubscriptionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "BankSubscriptionUpdate",
+        "type": "object"
+      },
+      "BankUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankVisibility"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "BankUpdate",
+        "type": "object"
+      },
+      "BankUserRef": {
+        "properties": {
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicId",
+          "username",
+          "displayName"
+        ],
+        "title": "BankUserRef",
+        "type": "object"
+      },
+      "BankVersionSummary": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "isActive": {
+            "default": false,
+            "title": "Isactive",
+            "type": "boolean"
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "withdrawnAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Withdrawnat"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "version",
+          "createdAt"
+        ],
+        "title": "BankVersionSummary",
+        "type": "object"
+      },
+      "BankVisibility": {
+        "enum": [
+          "private",
+          "team",
+          "public"
+        ],
+        "title": "BankVisibility",
+        "type": "string"
+      },
       "CorrectionCategory": {
         "enum": [
           "wrong_answer",
@@ -73,6 +483,48 @@
         ],
         "title": "CorrectionStatus",
         "type": "string"
+      },
+      "DeviceSessionEntity": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "current": {
+            "title": "Current",
+            "type": "boolean"
+          },
+          "deviceId": {
+            "title": "Deviceid",
+            "type": "string"
+          },
+          "deviceName": {
+            "title": "Devicename",
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastseenat"
+          }
+        },
+        "required": [
+          "deviceId",
+          "deviceName",
+          "lastSeenAt",
+          "createdAt",
+          "current"
+        ],
+        "title": "DeviceSessionEntity",
+        "type": "object"
       },
       "Difficulty": {
         "enum": [
@@ -103,6 +555,16 @@
               "draft.comment.updated"
             ],
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -152,6 +614,34 @@
         "title": "DraftCollaboratorRole",
         "type": "string"
       },
+      "DraftCollaboratorsUpdatedEvent": {
+        "properties": {
+          "event": {
+            "const": "draft.collaborators.updated",
+            "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/DraftChangedPayload"
+          }
+        },
+        "required": [
+          "event",
+          "payload"
+        ],
+        "title": "DraftCollaboratorsUpdatedEvent",
+        "type": "object"
+      },
       "DraftCommentStatus": {
         "enum": [
           "open",
@@ -165,6 +655,16 @@
           "event": {
             "const": "draft.deleted",
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -196,6 +696,110 @@
         "title": "DraftDeletedPayload",
         "type": "object"
       },
+      "DraftPresenceMember": {
+        "properties": {
+          "activity": {
+            "enum": [
+              "viewing",
+              "editing"
+            ],
+            "title": "Activity",
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "title": "Lastseenat",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DraftUserRef"
+          }
+        },
+        "required": [
+          "user",
+          "activity",
+          "lastSeenAt"
+        ],
+        "title": "DraftPresenceMember",
+        "type": "object"
+      },
+      "DraftPresenceSnapshotEvent": {
+        "properties": {
+          "event": {
+            "const": "draft.presence.snapshot",
+            "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/DraftPresenceSnapshotPayload"
+          }
+        },
+        "required": [
+          "event",
+          "payload"
+        ],
+        "title": "DraftPresenceSnapshotEvent",
+        "type": "object"
+      },
+      "DraftPresenceSnapshotPayload": {
+        "properties": {
+          "draftId": {
+            "title": "Draftid",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/DraftPresenceMember"
+            },
+            "title": "Members",
+            "type": "array"
+          }
+        },
+        "required": [
+          "draftId",
+          "members"
+        ],
+        "title": "DraftPresenceSnapshotPayload",
+        "type": "object"
+      },
+      "DraftPresenceUpdateEvent": {
+        "properties": {
+          "activity": {
+            "enum": [
+              "viewing",
+              "editing"
+            ],
+            "title": "Activity",
+            "type": "string"
+          },
+          "draftId": {
+            "title": "Draftid",
+            "type": "string"
+          },
+          "event": {
+            "const": "draft.presence.update",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "draftId",
+          "activity"
+        ],
+        "title": "DraftPresenceUpdateEvent",
+        "type": "object"
+      },
       "DraftReviewStatus": {
         "enum": [
           "draft",
@@ -205,6 +809,44 @@
         ],
         "title": "DraftReviewStatus",
         "type": "string"
+      },
+      "DraftSubscribeEvent": {
+        "properties": {
+          "draftId": {
+            "title": "Draftid",
+            "type": "string"
+          },
+          "event": {
+            "const": "draft.subscribe",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "draftId"
+        ],
+        "title": "DraftSubscribeEvent",
+        "type": "object"
+      },
+      "DraftUnsubscribeEvent": {
+        "properties": {
+          "draftId": {
+            "title": "Draftid",
+            "type": "string"
+          },
+          "event": {
+            "const": "draft.unsubscribe",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "draftId"
+        ],
+        "title": "DraftUnsubscribeEvent",
+        "type": "object"
       },
       "DraftUserRef": {
         "properties": {
@@ -249,6 +891,50 @@
           "meta"
         ],
         "title": "Envelope[AuthSession]",
+        "type": "object"
+      },
+      "Envelope_BankPublicationEntity_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BankPublicationEntity"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[BankPublicationEntity]",
+        "type": "object"
+      },
+      "Envelope_BankSubscriptionEntity_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BankSubscriptionEntity"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[BankSubscriptionEntity]",
         "type": "object"
       },
       "Envelope_ImageUploadResponse_": {
@@ -361,6 +1047,50 @@
         "title": "Envelope[PaperExpandedEntity]",
         "type": "object"
       },
+      "Envelope_PublicBankDetail_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicBankDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[PublicBankDetail]",
+        "type": "object"
+      },
+      "Envelope_QuestionBankEntity_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuestionBankEntity"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[QuestionBankEntity]",
+        "type": "object"
+      },
       "Envelope_QuestionCorrectionEntity_": {
         "properties": {
           "data": {
@@ -403,6 +1133,28 @@
           "meta"
         ],
         "title": "Envelope[QuestionEntity]",
+        "type": "object"
+      },
+      "Envelope_TokenPair_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TokenPair"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[TokenPair]",
         "type": "object"
       },
       "Envelope_Union_PaperExpandedEntity__PaperEntity__": {
@@ -481,6 +1233,58 @@
         "title": "Envelope[dict]",
         "type": "object"
       },
+      "Envelope_list_BankVersionSummary__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BankVersionSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[BankVersionSummary]]",
+        "type": "object"
+      },
+      "Envelope_list_DeviceSessionEntity__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceSessionEntity"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[DeviceSessionEntity]]",
+        "type": "object"
+      },
       "Envelope_list_PaperDraftSummary__": {
         "properties": {
           "data": {
@@ -507,6 +1311,58 @@
         "title": "Envelope[list[PaperDraftSummary]]",
         "type": "object"
       },
+      "Envelope_list_PublicBankSummary__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicBankSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[PublicBankSummary]]",
+        "type": "object"
+      },
+      "Envelope_list_QuestionBankSummary__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionBankSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[QuestionBankSummary]]",
+        "type": "object"
+      },
       "Envelope_list_QuestionCorrectionEntity__": {
         "properties": {
           "data": {
@@ -531,6 +1387,32 @@
           "meta"
         ],
         "title": "Envelope[list[QuestionCorrectionEntity]]",
+        "type": "object"
+      },
+      "Envelope_list_QuestionEntity__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionEntity"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[QuestionEntity]]",
         "type": "object"
       },
       "Envelope_list_QuestionRevisionEntity__": {
@@ -666,6 +1548,16 @@
           "event": {
             "const": "error",
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -858,6 +1750,41 @@
         "title": "MetaInfo",
         "type": "object"
       },
+      "NativeLoginRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Deviceid",
+            "type": "string"
+          },
+          "deviceName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Devicename",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "deviceName",
+          "deviceId"
+        ],
+        "title": "NativeLoginRequest",
+        "type": "object"
+      },
       "PaginatedResponse_QuestionEntity_": {
         "properties": {
           "items": {
@@ -914,6 +1841,16 @@
               "paper.updated"
             ],
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -2028,6 +2965,16 @@
             "title": "Event",
             "type": "string"
           },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
           "payload": {
             "$ref": "#/components/schemas/PaperQuestionRemovedPayload"
           }
@@ -2074,6 +3021,16 @@
               "paper.questions.reordered"
             ],
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -2211,6 +3168,16 @@
             "title": "Event",
             "type": "string"
           },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
           "payload": {
             "$ref": "#/components/schemas/PongPayload"
           }
@@ -2269,6 +3236,337 @@
         "title": "ProfileUpdate",
         "type": "object"
       },
+      "PublicBankDetail": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "itemCount": {
+            "default": 0,
+            "title": "Itemcount",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "title": "Publishedat",
+            "type": "string"
+          },
+          "state": {
+            "additionalProperties": true,
+            "title": "State",
+            "type": "object"
+          },
+          "subscriberCount": {
+            "default": 0,
+            "title": "Subscribercount",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "publicId",
+          "name",
+          "description",
+          "version",
+          "publishedAt",
+          "state"
+        ],
+        "title": "PublicBankDetail",
+        "type": "object"
+      },
+      "PublicBankSummary": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "itemCount": {
+            "default": 0,
+            "title": "Itemcount",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "title": "Publishedat",
+            "type": "string"
+          },
+          "subscriberCount": {
+            "default": 0,
+            "title": "Subscribercount",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "publicId",
+          "name",
+          "description",
+          "version",
+          "publishedAt"
+        ],
+        "title": "PublicBankSummary",
+        "type": "object"
+      },
+      "QuestionBankEntity": {
+        "properties": {
+          "accessRole": {
+            "$ref": "#/components/schemas/BankAccessRole"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "hasUpdate": {
+            "default": false,
+            "title": "Hasupdate",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "isSubscribed": {
+            "default": false,
+            "title": "Issubscribed",
+            "type": "boolean"
+          },
+          "itemCount": {
+            "default": 0,
+            "title": "Itemcount",
+            "type": "integer"
+          },
+          "memberCount": {
+            "default": 0,
+            "title": "Membercount",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/BankMemberEntity"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "subscribedVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscribedversion"
+          },
+          "subscriberCount": {
+            "default": 0,
+            "title": "Subscribercount",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/BankVisibility"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "description",
+          "visibility",
+          "accessRole",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "QuestionBankEntity",
+        "type": "object"
+      },
+      "QuestionBankSummary": {
+        "properties": {
+          "accessRole": {
+            "$ref": "#/components/schemas/BankAccessRole"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "hasUpdate": {
+            "default": false,
+            "title": "Hasupdate",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "isSubscribed": {
+            "default": false,
+            "title": "Issubscribed",
+            "type": "boolean"
+          },
+          "itemCount": {
+            "default": 0,
+            "title": "Itemcount",
+            "type": "integer"
+          },
+          "memberCount": {
+            "default": 0,
+            "title": "Membercount",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicId": {
+            "title": "Publicid",
+            "type": "string"
+          },
+          "subscribedVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscribedversion"
+          },
+          "subscriberCount": {
+            "default": 0,
+            "title": "Subscribercount",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/BankVisibility"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "description",
+          "visibility",
+          "accessRole",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "QuestionBankSummary",
+        "type": "object"
+      },
       "QuestionChangedEvent": {
         "properties": {
           "event": {
@@ -2277,6 +3575,16 @@
               "question.updated"
             ],
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -2525,6 +3833,16 @@
           "event": {
             "const": "question.deleted",
             "title": "Event",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
             "type": "string"
           },
           "payload": {
@@ -3035,6 +4353,9 @@
       "RealtimeClientMessage": {
         "discriminator": {
           "mapping": {
+            "draft.presence.update": "#/components/schemas/DraftPresenceUpdateEvent",
+            "draft.subscribe": "#/components/schemas/DraftSubscribeEvent",
+            "draft.unsubscribe": "#/components/schemas/DraftUnsubscribeEvent",
             "ping": "#/components/schemas/RealtimePing"
           },
           "propertyName": "event"
@@ -3042,6 +4363,15 @@
         "oneOf": [
           {
             "$ref": "#/components/schemas/RealtimePing"
+          },
+          {
+            "$ref": "#/components/schemas/DraftSubscribeEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DraftUnsubscribeEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DraftPresenceUpdateEvent"
           }
         ]
       },
@@ -3063,9 +4393,11 @@
         "discriminator": {
           "mapping": {
             "auth.connected": "#/components/schemas/AuthConnectedEvent",
+            "draft.collaborators.updated": "#/components/schemas/DraftCollaboratorsUpdatedEvent",
             "draft.comment.created": "#/components/schemas/DraftChangedEvent",
             "draft.comment.updated": "#/components/schemas/DraftChangedEvent",
             "draft.deleted": "#/components/schemas/DraftDeletedEvent",
+            "draft.presence.snapshot": "#/components/schemas/DraftPresenceSnapshotEvent",
             "draft.review.updated": "#/components/schemas/DraftChangedEvent",
             "draft.updated": "#/components/schemas/DraftChangedEvent",
             "error": "#/components/schemas/ErrorEvent",
@@ -3111,8 +4443,29 @@
           },
           {
             "$ref": "#/components/schemas/DraftDeletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DraftPresenceSnapshotEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DraftCollaboratorsUpdatedEvent"
           }
         ]
+      },
+      "RefreshTokenRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "refreshToken": {
+            "minLength": 1,
+            "title": "Refreshtoken",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "title": "RefreshTokenRequest",
+        "type": "object"
       },
       "RegisterRequest": {
         "additionalProperties": false,
@@ -3151,6 +4504,38 @@
         ],
         "title": "SortOrder",
         "type": "string"
+      },
+      "TokenPair": {
+        "properties": {
+          "accessToken": {
+            "title": "Accesstoken",
+            "type": "string"
+          },
+          "expiresIn": {
+            "title": "Expiresin",
+            "type": "integer"
+          },
+          "refreshExpiresIn": {
+            "title": "Refreshexpiresin",
+            "type": "integer"
+          },
+          "refreshToken": {
+            "title": "Refreshtoken",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserEntity"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+          "refreshExpiresIn",
+          "user"
+        ],
+        "title": "TokenPair",
+        "type": "object"
       },
       "UserCreate": {
         "additionalProperties": false,
@@ -3230,7 +4615,12 @@
                 "answers:read",
                 "papers:read",
                 "papers:write",
-                "users:manage"
+                "users:manage",
+                "banks:read",
+                "banks:write",
+                "banks:delete",
+                "banks:publish",
+                "banks:subscribe"
               ],
               "type": "string"
             },
@@ -3397,7 +4787,7 @@
     "description": "The canonical HTTP contract for `/api/v1`. Browser clients use Cookie + CSRF authentication; native clients inject Bearer credentials. WebSocket messages are described by `x-testpapers-websocket`.",
     "summary": "Versioned Cloud contract shared by TestPapers Web, Desktop, and Mobile.",
     "title": "TestPaper Backend",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3595,6 +4985,169 @@
           }
         ],
         "summary": "Upload Avatar",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/devices": {
+      "get": {
+        "operationId": "get_devices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_DeviceSessionEntity__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Devices",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/devices/{device_id}": {
+      "delete": {
+        "operationId": "delete_device",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Device",
         "tags": [
           "auth"
         ]
@@ -4051,9 +5604,6 @@
           {
             "cookieAuth": [],
             "csrfToken": []
-          },
-          {
-            "bearerAuth": []
           }
         ],
         "summary": "Refresh Session",
@@ -4121,6 +5671,2086 @@
         "summary": "Register",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/token": {
+      "post": {
+        "operationId": "native_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NativeLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TokenPair_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [],
+        "summary": "Native Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/token/refresh": {
+      "post": {
+        "operationId": "native_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TokenPair_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [],
+        "summary": "Native Refresh",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/banks": {
+      "get": {
+        "operationId": "list_banks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BankVisibility"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Visibility"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BankListScope",
+              "default": "visible"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_QuestionBankSummary__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Banks",
+        "tags": [
+          "banks"
+        ]
+      },
+      "post": {
+        "operationId": "create_bank_route",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Bank Route",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}": {
+      "delete": {
+        "operationId": "delete_bank_route",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Bank Route",
+        "tags": [
+          "banks"
+        ]
+      },
+      "get": {
+        "operationId": "get_bank",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Bank",
+        "tags": [
+          "banks"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_bank",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Patch Bank",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/fork": {
+      "post": {
+        "operationId": "fork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankForkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Fork",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/items": {
+      "post": {
+        "operationId": "add_items",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankItemAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "One or more questions already exist in this bank."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Add Items",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/items/{question_public_id}": {
+      "delete": {
+        "operationId": "remove_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_public_id",
+            "required": true,
+            "schema": {
+              "title": "Question Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove Item",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/members": {
+      "post": {
+        "operationId": "create_member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankMemberCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Member",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/members/{user_public_id}": {
+      "delete": {
+        "operationId": "remove_member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_public_id",
+            "required": true,
+            "schema": {
+              "title": "User Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove Member",
+        "tags": [
+          "banks"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_public_id",
+            "required": true,
+            "schema": {
+              "title": "User Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankMemberUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Patch Member",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/publish": {
+      "post": {
+        "operationId": "publish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Publish",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/questions": {
+      "get": {
+        "operationId": "get_bank_questions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_QuestionEntity__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Bank Questions",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/subscribe": {
+      "delete": {
+        "operationId": "unsubscribe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Unsubscribe",
+        "tags": [
+          "banks"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_subscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankSubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BankSubscriptionEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Patch Subscription",
+        "tags": [
+          "banks"
+        ]
+      },
+      "post": {
+        "operationId": "subscribe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BankSubscriptionEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Subscribe",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/versions": {
+      "get": {
+        "operationId": "versions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_BankVersionSummary__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Versions",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/versions/{version}": {
+      "get": {
+        "operationId": "get_version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BankPublicationEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Version",
+        "tags": [
+          "banks"
+        ]
+      }
+    },
+    "/api/v1/banks/{bank_public_id}/withdraw": {
+      "post": {
+        "operationId": "withdraw",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionBankEntity_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The write rate limit was exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Withdraw",
+        "tags": [
+          "banks"
         ]
       }
     },
@@ -5184,6 +8814,17 @@
               "title": "Draft Public Id",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "docx",
+              "pattern": "^(docx|tex)$",
+              "title": "Format",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5657,6 +9298,19 @@
     "/api/v1/papers/draft-download": {
       "post": {
         "operationId": "download_draft_paper",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "docx",
+              "pattern": "^(docx|tex)$",
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6124,7 +9778,7 @@
             "required": false,
             "schema": {
               "default": "docx",
-              "pattern": "^docx$",
+              "pattern": "^(docx|tex)$",
               "title": "Format",
               "type": "string"
             }
@@ -6839,6 +10493,130 @@
         "summary": "Remove Paper Question",
         "tags": [
           "papers"
+        ]
+      }
+    },
+    "/api/v1/public/banks": {
+      "get": {
+        "operationId": "list_public_bank_snapshots",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_PublicBankSummary__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [],
+        "summary": "List Public Bank Snapshots",
+        "tags": [
+          "public-banks"
+        ]
+      }
+    },
+    "/api/v1/public/banks/{bank_public_id}": {
+      "get": {
+        "operationId": "get_public_bank_snapshot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_public_id",
+            "required": true,
+            "schema": {
+              "title": "Bank Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PublicBankDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [],
+        "summary": "Get Public Bank Snapshot",
+        "tags": [
+          "public-banks"
         ]
       }
     },

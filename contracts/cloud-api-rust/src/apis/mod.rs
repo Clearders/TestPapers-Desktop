@@ -114,12 +114,14 @@ impl From<&str> for ContentType {
 }
 
 pub mod auth_api;
+pub mod banks_api;
 pub mod default_api;
 pub mod drafts_api;
 pub mod health_api;
 pub mod images_api;
 pub mod metadata_api;
 pub mod papers_api;
+pub mod public_banks_api;
 pub mod questions_api;
 pub mod tasks_api;
 pub mod users_api;

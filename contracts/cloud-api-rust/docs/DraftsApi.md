@@ -134,7 +134,7 @@ Name | Type | Description  | Required | Notes
 
 ## download_draft
 
-> std::path::PathBuf download_draft(draft_public_id)
+> std::path::PathBuf download_draft(draft_public_id, format)
 Download Draft
 
 ### Parameters
@@ -143,6 +143,7 @@ Download Draft
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
 **draft_public_id** | **String** |  | [required] |
+**format** | Option<**String**> |  |  |[default to docx]
 
 ### Return type
 
