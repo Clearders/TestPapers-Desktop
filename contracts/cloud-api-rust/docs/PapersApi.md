@@ -77,7 +77,7 @@ Name | Type | Description  | Required | Notes
 
 ## download_draft_paper
 
-> std::path::PathBuf download_draft_paper(paper_draft_download_request)
+> std::path::PathBuf download_draft_paper(paper_draft_download_request, format)
 Download Draft Paper
 
 ### Parameters
@@ -86,6 +86,7 @@ Download Draft Paper
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
 **paper_draft_download_request** | [**PaperDraftDownloadRequest**](PaperDraftDownloadRequest.md) |  | [required] |
+**format** | Option<**String**> |  |  |[default to docx]
 
 ### Return type
 

@@ -43,6 +43,7 @@ async fn bearer_auth_and_binary_response_are_preserved() {
     let download = client
         .download_draft(DownloadDraftParams {
             draft_public_id: "draft-public-id".to_owned(),
+            format: None,
         })
         .await
         .expect("download succeeds");
