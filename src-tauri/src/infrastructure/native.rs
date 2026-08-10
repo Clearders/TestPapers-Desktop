@@ -108,7 +108,8 @@ pub(crate) fn build_menu(app: &App) -> tauri::Result<()> {
 pub(crate) fn build_tray(app: &App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, TRAY_SHOW, "Show TestPapers", true, None::<&str>)?;
     let hide = MenuItem::with_id(app, TRAY_HIDE, "Hide window", true, None::<&str>)?;
-    let preferences = MenuItem::with_id(app, TRAY_PREFERENCES, "Close behavior…", true, None::<&str>)?;
+    let preferences =
+        MenuItem::with_id(app, TRAY_PREFERENCES, "Close behavior…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, TRAY_QUIT, "Quit TestPapers", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &hide, &preferences, &quit])?;
     let mut builder = TrayIconBuilder::with_id("main-tray")
