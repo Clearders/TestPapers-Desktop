@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 CANONICAL_ADR = "https://github.com/Clearders/TestPapers/blob/main/docs/adr/0001-platform-repository-and-runtime-boundaries.md"
@@ -43,18 +45,56 @@ DESKTOP_CONTRACT_FILES = (
     "scripts/cloud_api_codegen.py",
     "scripts/regenerate_cloud_api_rust.py",
 )
-DESKTOP_ALLOWED_MANIFESTS = {"contracts/cloud-api-rust/Cargo.toml"}
-DESKTOP_APP_SCAFFOLD_FILES = {
+DESKTOP_APP_FILES = (
+    ".node-version",
     "package.json",
-    "pnpm-lock.yaml",
-    "yarn.lock",
-    "bun.lock",
-    "bun.lockb",
-    "vite.config.js",
-    "vite.config.mjs",
+    "package-lock.json",
     "vite.config.ts",
-    "tauri.conf.json",
-    "tauri.conf.json5",
+    "src/App.vue",
+    "src/application/useDesktopShell.ts",
+    "src/infrastructure/tauri/shellBridge.ts",
+    "src/types/shell.ts",
+    "src-tauri/Cargo.toml",
+    "src-tauri/Cargo.lock",
+    "src-tauri/tauri.conf.json",
+    "src-tauri/capabilities/main-window.json",
+    "src-tauri/src/application/mod.rs",
+    "src-tauri/src/domain/mod.rs",
+    "src-tauri/src/infrastructure/mod.rs",
+    "src-tauri/src/ipc/mod.rs",
+    "src-tauri/src/sync/mod.rs",
+    "src-tauri/migrations/README.md",
+)
+DESKTOP_ALLOWED_MANIFESTS = {
+    "package.json",
+    "src-tauri/Cargo.toml",
+    "contracts/cloud-api-rust/Cargo.toml",
+}
+DESKTOP_COMMANDS = {
+    "get_shell_context",
+    "frontend_ready",
+    "set_theme_preference",
+    "set_close_behavior",
+    "resolve_close_request",
+    "preview_question_import_dialog",
+    "preview_paper_export_dialog",
+}
+DESKTOP_EVENT_PERMISSIONS = {"core:event:allow-listen", "core:event:allow-unlisten"}
+DESKTOP_FORBIDDEN_NPM_DEPENDENCIES = {
+    "nuxt",
+    "@tauri-apps/plugin-fs",
+    "@tauri-apps/plugin-http",
+    "@tauri-apps/plugin-shell",
+    "@tauri-apps/plugin-sql",
+}
+DESKTOP_FORBIDDEN_CARGO_DEPENDENCIES = {
+    "reqwest",
+    "sqlx",
+    "rusqlite",
+    "tauri-plugin-fs",
+    "tauri-plugin-http",
+    "tauri-plugin-shell",
+    "tauri-plugin-sql",
 }
 IGNORED_DIRECTORY_NAMES = {".git", ".cache", "node_modules", "target"}
 MANIFEST_NAMES = {
@@ -101,6 +141,102 @@ def read_utf8(path: Path, errors: list[str]) -> str:
     except UnicodeDecodeError:
         errors.append(f"{path.as_posix()} is not valid UTF-8")
         return ""
+    except OSError as error:
+        errors.append(f"could not read {path.as_posix()}: {error}")
+        return ""
+
+
+def load_json(path: Path, errors: list[str]) -> dict:
+    try:
+        value = json.loads(read_utf8(path, errors))
+    except json.JSONDecodeError as error:
+        errors.append(f"{path.as_posix()} is not valid JSON: {error}")
+        return {}
+    if not isinstance(value, dict):
+        errors.append(f"{path.as_posix()} must contain a JSON object")
+        return {}
+    return value
+
+
+def validate_desktop_shell(root: Path, errors: list[str]) -> None:
+    for relative in DESKTOP_APP_FILES:
+        candidate = root / relative
+        if not candidate.is_file() or candidate.stat().st_size == 0:
+            errors.append(f"missing or empty Desktop shell file: {relative}")
+
+    package = load_json(root / "package.json", errors)
+    all_dependencies = {
+        **package.get("dependencies", {}),
+        **package.get("devDependencies", {}),
+    }
+    forbidden_npm = DESKTOP_FORBIDDEN_NPM_DEPENDENCIES & all_dependencies.keys()
+    if forbidden_npm:
+        errors.append(
+            "Desktop shell has forbidden npm dependencies: "
+            + ", ".join(sorted(forbidden_npm))
+        )
+
+    try:
+        cargo = tomllib.loads(read_utf8(root / "src-tauri/Cargo.toml", errors))
+    except tomllib.TOMLDecodeError as error:
+        errors.append(f"src-tauri/Cargo.toml is not valid TOML: {error}")
+        cargo = {}
+    cargo_dependencies = set(cargo.get("dependencies", {}))
+    forbidden_cargo = DESKTOP_FORBIDDEN_CARGO_DEPENDENCIES & cargo_dependencies
+    if forbidden_cargo:
+        errors.append(
+            "Desktop shell has forbidden Cargo dependencies: "
+            + ", ".join(sorted(forbidden_cargo))
+        )
+
+    tauri_config = load_json(root / "src-tauri/tauri.conf.json", errors)
+    app_config = tauri_config.get("app", {})
+    windows = app_config.get("windows", [])
+    if app_config.get("withGlobalTauri") is not False:
+        errors.append("Tauri global API must remain disabled")
+    if len(windows) != 1 or windows[0].get("label") != "main":
+        errors.append("Tauri must define exactly one main window")
+    elif windows[0].get("visible") is not False:
+        errors.append("The main window must stay hidden until frontend_ready")
+    dev_url = tauri_config.get("build", {}).get("devUrl", "")
+    if dev_url and not re.fullmatch(r"http://(?:localhost|127\.0\.0\.1):\d+", dev_url):
+        errors.append("Remote Tauri development URLs are forbidden")
+
+    capability = load_json(root / "src-tauri/capabilities/main-window.json", errors)
+    permissions = set(capability.get("permissions", []))
+    expected_permissions = DESKTOP_EVENT_PERMISSIONS | {
+        f"allow-{command.replace('_', '-')}" for command in DESKTOP_COMMANDS
+    }
+    if capability.get("local") is not True:
+        errors.append("The main-window capability must be local-only")
+    if capability.get("windows") != ["main"]:
+        errors.append("The main-window capability must target only the main window")
+    if permissions != expected_permissions:
+        errors.append("The main-window capability permissions differ from the narrow CLE-23 allowlist")
+    for permission in permissions:
+        if permission == "core:default" or permission.startswith(("fs:", "http:", "shell:", "sql:")):
+            errors.append(f"forbidden broad Tauri permission: {permission}")
+
+    bridge = (root / "src/infrastructure/tauri/shellBridge.ts").resolve()
+    for path in (root / "src").rglob("*"):
+        if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() != bridge:
+            if re.search(r"\binvoke\s*\(|@tauri-apps/api/(?:core|event)", read_utf8(path, errors)):
+                errors.append(
+                    "Vue application code bypasses the typed Tauri bridge: "
+                    f"{path.relative_to(root).as_posix()}"
+                )
+
+    build_script = read_utf8(root / "src-tauri/build.rs", errors)
+    declared_commands = set(re.findall(r'"([a-z][a-z0-9_]+)"', build_script))
+    if declared_commands != DESKTOP_COMMANDS:
+        errors.append("src-tauri/build.rs command manifest differs from the CLE-23 allowlist")
+
+    rust_source = "\n".join(
+        read_utf8(path, errors) for path in (root / "src-tauri/src").rglob("*.rs")
+    )
+    for forbidden in ("contracts/cloud-api-rust", "reqwest::", "rusqlite::", "sqlx::"):
+        if forbidden in rust_source:
+            errors.append(f"Desktop shell source starts a deferred integration: {forbidden}")
 
 
 def matches_secret(path: Path) -> bool:
@@ -123,6 +259,7 @@ def validate(repository: str, root: Path) -> list[str]:
             candidate = root / relative
             if not candidate.is_file() or candidate.stat().st_size == 0:
                 errors.append(f"missing or empty Desktop contract file: {relative}")
+        validate_desktop_shell(root, errors)
 
     readme = read_utf8(root / "README.md", errors)
     required_readme_tokens = (
@@ -174,23 +311,9 @@ def validate(repository: str, root: Path) -> list[str]:
                 errors.append(
                     f"cross-repository relative dependency is forbidden: {relative.as_posix()}"
                 )
-            if (
-                repository == "TestPapers-Desktop"
-                and relative.as_posix() not in DESKTOP_ALLOWED_MANIFESTS
-            ):
+            if repository == "TestPapers-Desktop" and relative.as_posix() not in DESKTOP_ALLOWED_MANIFESTS:
                 errors.append(
-                    "Desktop application scaffold is deferred; unexpected manifest: "
-                    f"{relative.as_posix()}"
-                )
-        if repository == "TestPapers-Desktop" and path.is_file():
-            if (
-                path.name in DESKTOP_APP_SCAFFOLD_FILES
-                or path.suffix == ".vue"
-                or "src-tauri" in relative.parts
-            ):
-                errors.append(
-                    "Desktop application scaffold is deferred; unexpected file: "
-                    f"{relative.as_posix()}"
+                    f"unexpected Desktop manifest: {relative.as_posix()}"
                 )
 
     return errors
