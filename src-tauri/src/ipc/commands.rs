@@ -1,14 +1,29 @@
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    application::ShellApplication,
+    application::{EngineSupervisor, ShellApplication},
     domain::{
         CloseBehavior, CloseDecision, CloseOutcome, DialogPreview, ExportFormat, ThemePreference,
     },
     infrastructure::{dialogs, native},
 };
 
-use super::dto::{CloseResolution, ShellContext};
+use super::dto::{CloseResolution, EngineContextV1, EngineErrorV1, ShellContext};
+
+#[tauri::command]
+pub(crate) fn get_engine_context(state: State<'_, EngineSupervisor>) -> EngineContextV1 {
+    state.snapshot().into()
+}
+
+#[tauri::command]
+pub(crate) fn retry_engine_start(
+    state: State<'_, EngineSupervisor>,
+) -> Result<EngineContextV1, EngineErrorV1> {
+    state
+        .retry()
+        .map(EngineContextV1::from)
+        .map_err(EngineErrorV1::from)
+}
 
 fn context(app: &AppHandle, state: &ShellApplication) -> Result<ShellContext, String> {
     let window = app

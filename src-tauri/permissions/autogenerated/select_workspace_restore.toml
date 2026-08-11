@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-select-workspace-restore"
+description = "Enables the select_workspace_restore command without any pre-configured scope."
+commands.allow = ["select_workspace_restore"]
+
+[[permission]]
+identifier = "deny-select-workspace-restore"
+description = "Denies the select_workspace_restore command without any pre-configured scope."
+commands.deny = ["select_workspace_restore"]

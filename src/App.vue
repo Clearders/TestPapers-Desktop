@@ -4,10 +4,7 @@
     <header class="app-header">
       <div class="brand">
         <span class="brand-mark"><AppIcon name="sparkles" /></span>
-        <div>
-          <strong>TestPapers Desktop</strong>
-          <span>Local-first workspace</span>
-        </div>
+        <div><strong>TestPapers Desktop</strong><span>Local-first workspace</span></div>
       </div>
       <div class="header-actions">
         <span class="status-chip status-chip--offline"><span aria-hidden="true" /> Cloud not required</span>
@@ -24,85 +21,22 @@
             <option value="dark">Dark theme</option>
           </select>
         </label>
-        <button class="icon-button" type="button" aria-label="Open preferences" @click="preferencesOpen = true">
-          <AppIcon name="settings" />
-        </button>
+        <button class="icon-button" type="button" aria-label="Open preferences" @click="preferencesOpen = true"><AppIcon name="settings" /></button>
       </div>
     </header>
 
     <main id="main-content" class="main-content">
-      <section class="hero">
-        <div>
-          <span class="eyebrow">Desktop foundation · CLE-23</span>
-          <h1>Your offline workspace starts here.</h1>
-          <p>
-            The native shell is ready without Nuxt SSR or a Cloud connection. Local authoring capabilities arrive in the next Desktop milestones.
-          </p>
-        </div>
-        <div class="runtime-card" aria-live="polite">
-          <div class="runtime-icon"><AppIcon name="check" /></div>
-          <div>
-            <strong>{{ context ? 'Desktop shell ready' : 'Starting Desktop shell…' }}</strong>
-            <span v-if="context">v{{ context.appVersion }} · {{ context.platform }}</span>
-            <span v-else>Loading native integrations</span>
-          </div>
-        </div>
-      </section>
-
       <p v-if="error" class="alert alert--error" role="alert">{{ error }}</p>
       <div v-if="context?.warnings.length" class="alert alert--warning" role="status">
         <strong>Startup notice</strong>
         <ul><li v-for="warning in context.warnings" :key="warning">{{ warning }}</li></ul>
       </div>
-
-      <section class="roadmap-grid" aria-label="Desktop capability roadmap">
-        <article class="card">
-          <span class="card-icon"><AppIcon name="settings" /></span>
-          <div><span class="card-kicker">CLE-24</span><h2>Local Engine</h2></div>
-          <p>Lifecycle and stable application IPC will be implemented after this shell.</p>
-          <span class="state-label">Boundary reserved</span>
-        </article>
-        <article class="card">
-          <span class="card-icon"><AppIcon name="book" /></span>
-          <div><span class="card-kicker">CLE-25/26</span><h2>Offline question bank</h2></div>
-          <p>SQLite, migrations, search, and imports remain intentionally outside this issue.</p>
-          <span class="state-label">No database created</span>
-        </article>
-        <article class="card">
-          <span class="card-icon"><AppIcon name="paper" /></span>
-          <div><span class="card-kicker">CLE-27</span><h2>Paper authoring</h2></div>
-          <p>Generation, preview, and export will stay local once the engine is ready.</p>
-          <span class="state-label">Feature pending</span>
-        </article>
-      </section>
-
-      <section class="integration-panel">
-        <div>
-          <span class="eyebrow">Native integration preview</span>
-          <h2>Safe file dialogs, owned by Rust</h2>
-          <p>These previews select names only. No file is read or written, and no absolute path crosses IPC.</p>
-        </div>
-        <div class="integration-actions">
-          <button class="button button--primary" type="button" :disabled="busy" @click="previewQuestionImport">
-            <AppIcon name="upload" /> Question import
-          </button>
-          <button class="button" type="button" :disabled="busy" @click="previewPaperExport('docx')">
-            <AppIcon name="download" /> DOCX target
-          </button>
-          <button class="button" type="button" :disabled="busy" @click="previewPaperExport('tex')">
-            <AppIcon name="download" /> TeX target
-          </button>
-        </div>
-        <div v-if="dialogPreview" class="dialog-result" role="status">
-          <strong>{{ dialogPreview.cancelled ? 'Selection cancelled' : 'Native dialog completed' }}</strong>
-          <span v-if="dialogPreview.displayNames.length">{{ dialogPreview.displayNames.join(', ') }}</span>
-          <span v-else>No filename retained.</span>
-        </div>
-      </section>
+      <LocalWorkspace />
     </main>
 
     <footer class="app-footer">
       <span>Settings: {{ context?.integrations.settingsPersistent ? 'persistent' : 'session only' }}</span>
+      <span v-if="context">v{{ context.appVersion }} · {{ context.platform }}</span>
       <span>Tray: {{ context?.integrations.trayAvailable ? 'available' : 'unavailable' }}</span>
     </footer>
 
@@ -144,22 +78,20 @@
 </template>
 
 <script setup lang="ts">
-import AppIcon from './components/AppIcon.vue'
 import { createDesktopShell } from './application/useDesktopShell'
+import AppIcon from './components/AppIcon.vue'
+import LocalWorkspace from './components/LocalWorkspace.vue'
 import type { CloseBehavior, ThemePreference } from './types/shell'
 
 const {
   context,
   closeRequest,
-  dialogPreview,
   preferencesOpen,
   busy,
   error,
   effectiveTheme,
   setThemePreference,
   setCloseBehavior,
-  resolveClose,
-  previewQuestionImport,
-  previewPaperExport
+  resolveClose
 } = createDesktopShell()
 </script>

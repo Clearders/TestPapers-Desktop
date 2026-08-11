@@ -61,7 +61,9 @@ jobs:
         run: |
           python scripts/check_repository_baseline.py --repository TestPapers-Desktop
           python scripts/check_environment_contract.py
+          python scripts/check_local_data_contract.py
           python -m unittest tests/test_environment_contract.py
+          python -m unittest tests/test_local_data_contract.py
 
       - name: Verify Cloud contract drift and generated crate
         run: |
