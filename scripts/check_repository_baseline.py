@@ -13,7 +13,7 @@ REPOSITORIES = {
     "TestPapers-Desktop": {
         "runtime": "Runtime owner: Desktop team.",
         "release": "Release unit: signed Desktop installer and its bundled Rust Local Engine.",
-        "implementation_issue": "CLE-23",
+        "implementation_issue": "CLE-24",
     },
     "TestPapers-Mobile": {
         "runtime": "Runtime owner: Mobile team.",
@@ -90,7 +90,6 @@ DESKTOP_FORBIDDEN_NPM_DEPENDENCIES = {
 DESKTOP_FORBIDDEN_CARGO_DEPENDENCIES = {
     "reqwest",
     "sqlx",
-    "rusqlite",
     "tauri-plugin-fs",
     "tauri-plugin-http",
     "tauri-plugin-shell",
@@ -234,7 +233,7 @@ def validate_desktop_shell(root: Path, errors: list[str]) -> None:
     rust_source = "\n".join(
         read_utf8(path, errors) for path in (root / "src-tauri/src").rglob("*.rs")
     )
-    for forbidden in ("contracts/cloud-api-rust", "reqwest::", "rusqlite::", "sqlx::"):
+    for forbidden in ("contracts/cloud-api-rust", "reqwest::", "sqlx::"):
         if forbidden in rust_source:
             errors.append(f"Desktop shell source starts a deferred integration: {forbidden}")
 

@@ -13,7 +13,7 @@ REQUIRED = {
     "TESTPAPERS_SQLITE_PATH",
     "TESTPAPERS_EXPORT_DIR",
     "TESTPAPERS_CLOUD_API_MODE",
-    "TESTPAPERS_LOCAL_API_BASE",
+    "TESTPAPERS_CLOUD_LOCAL_API_BASE",
     "TESTPAPERS_STAGING_API_BASE",
     "TESTPAPERS_PRODUCTION_API_BASE",
 }
@@ -73,8 +73,8 @@ def validate(values: dict[str, str]) -> list[str]:
     for key in ("TESTPAPERS_DATA_DIR", "TESTPAPERS_SQLITE_PATH", "TESTPAPERS_EXPORT_DIR"):
         if values.get(key) and values[key].startswith(("http://", "https://")):
             errors.append(f"{key} must be a local filesystem path")
-    if mode == "local" and not valid_url(values.get("TESTPAPERS_LOCAL_API_BASE", ""), False):
-        errors.append("TESTPAPERS_LOCAL_API_BASE must be a credential-free http(s) origin when Cloud API mode is local")
+    if mode == "local" and not valid_url(values.get("TESTPAPERS_CLOUD_LOCAL_API_BASE", ""), False):
+        errors.append("TESTPAPERS_CLOUD_LOCAL_API_BASE must be a credential-free http(s) Cloud origin when Cloud API mode is local")
     if mode == "staging" and not valid_url(values.get("TESTPAPERS_STAGING_API_BASE", ""), True):
         errors.append("TESTPAPERS_STAGING_API_BASE must be a credential-free HTTPS origin when Cloud API mode is staging")
     if mode == "production" and not valid_url(values.get("TESTPAPERS_PRODUCTION_API_BASE", ""), True):

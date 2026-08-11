@@ -28,6 +28,8 @@ Every TestPapers repository uses `TESTPAPERS_ENV` with these meanings:
 
 The committed `.env.example` remains the forward-looking Desktop environment contract. CLE-23 does not load it: the minimal shell has no data, Local Engine, or Cloud startup. Future work may consume the reserved settings while preserving `offline` as a no-network mode. Authentication credentials must come from a future operating-system secure store, never `.env`.
 
+The Rust Local Engine is in-process and has no URL or listening-port setting. `TESTPAPERS_CLOUD_LOCAL_API_BASE` names an optional developer Cloud endpoint only; it is ignored in `offline` mode.
+
 Validate the reserved schema with:
 
 ```bash
