@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-revert-question"
+description = "Enables the revert_question command without any pre-configured scope."
+commands.allow = ["revert_question"]
+
+[[permission]]
+identifier = "deny-revert-question"
+description = "Denies the revert_question command without any pre-configured scope."
+commands.deny = ["revert_question"]

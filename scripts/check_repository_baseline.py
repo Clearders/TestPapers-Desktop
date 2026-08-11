@@ -216,9 +216,12 @@ def validate_desktop_shell(root: Path, errors: list[str]) -> None:
         if permission == "core:default" or permission.startswith(("fs:", "http:", "shell:", "sql:")):
             errors.append(f"forbidden broad Tauri permission: {permission}")
 
-    bridge = (root / "src/infrastructure/tauri/shellBridge.ts").resolve()
+    bridges = {
+        (root / "src/infrastructure/tauri/shellBridge.ts").resolve(),
+        (root / "src/infrastructure/tauri/localEngineBridge.ts").resolve(),
+    }
     for path in (root / "src").rglob("*"):
-        if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() != bridge:
+        if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() not in bridges:
             if re.search(r"\binvoke\s*\(|@tauri-apps/api/(?:core|event)", read_utf8(path, errors)):
                 errors.append(
                     "Vue application code bypasses the typed Tauri bridge: "

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-delete-question"
+description = "Enables the delete_question command without any pre-configured scope."
+commands.allow = ["delete_question"]
+
+[[permission]]
+identifier = "deny-delete-question"
+description = "Denies the delete_question command without any pre-configured scope."
+commands.deny = ["delete_question"]

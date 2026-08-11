@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-search-questions"
+description = "Enables the search_questions command without any pre-configured scope."
+commands.allow = ["search_questions"]
+
+[[permission]]
+identifier = "deny-search-questions"
+description = "Denies the search_questions command without any pre-configured scope."
+commands.deny = ["search_questions"]

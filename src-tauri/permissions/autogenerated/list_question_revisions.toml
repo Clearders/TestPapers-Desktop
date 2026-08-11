@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-question-revisions"
+description = "Enables the list_question_revisions command without any pre-configured scope."
+commands.allow = ["list_question_revisions"]
+
+[[permission]]
+identifier = "deny-list-question-revisions"
+description = "Denies the list_question_revisions command without any pre-configured scope."
+commands.deny = ["list_question_revisions"]

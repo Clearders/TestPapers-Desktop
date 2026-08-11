@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-add-question-image"
+description = "Enables the add_question_image command without any pre-configured scope."
+commands.allow = ["add_question_image"]
+
+[[permission]]
+identifier = "deny-add-question-image"
+description = "Denies the add_question_image command without any pre-configured scope."
+commands.deny = ["add_question_image"]

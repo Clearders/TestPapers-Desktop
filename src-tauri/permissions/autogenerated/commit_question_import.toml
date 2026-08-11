@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-commit-question-import"
+description = "Enables the commit_question_import command without any pre-configured scope."
+commands.allow = ["commit_question_import"]
+
+[[permission]]
+identifier = "deny-commit-question-import"
+description = "Denies the commit_question_import command without any pre-configured scope."
+commands.deny = ["commit_question_import"]

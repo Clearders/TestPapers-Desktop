@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-question"
+description = "Enables the get_question command without any pre-configured scope."
+commands.allow = ["get_question"]
+
+[[permission]]
+identifier = "deny-get-question"
+description = "Denies the get_question command without any pre-configured scope."
+commands.deny = ["get_question"]

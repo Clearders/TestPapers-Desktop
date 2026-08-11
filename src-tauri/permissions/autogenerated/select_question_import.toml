@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-select-question-import"
+description = "Enables the select_question_import command without any pre-configured scope."
+commands.allow = ["select_question_import"]
+
+[[permission]]
+identifier = "deny-select-question-import"
+description = "Denies the select_question_import command without any pre-configured scope."
+commands.deny = ["select_question_import"]
