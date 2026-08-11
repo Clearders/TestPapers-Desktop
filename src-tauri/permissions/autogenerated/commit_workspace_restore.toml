@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-commit-workspace-restore"
+description = "Enables the commit_workspace_restore command without any pre-configured scope."
+commands.allow = ["commit_workspace_restore"]
+
+[[permission]]
+identifier = "deny-commit-workspace-restore"
+description = "Denies the commit_workspace_restore command without any pre-configured scope."
+commands.deny = ["commit_workspace_restore"]

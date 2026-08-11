@@ -1,9 +1,60 @@
 use serde::Serialize;
 
 use crate::{
-    application::ShellSnapshot,
-    domain::{CloseBehavior, CloseOutcome, EffectiveTheme, ThemePreference, SHELL_SCHEMA_VERSION},
+    application::{EngineSnapshot, ShellSnapshot},
+    domain::{
+        CloseBehavior, CloseOutcome, EffectiveTheme, EngineFailure, EngineState, SuggestedAction,
+        ThemePreference, ENGINE_SCHEMA_VERSION, SHELL_SCHEMA_VERSION,
+    },
 };
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EngineErrorV1 {
+    schema_version: u8,
+    code: &'static str,
+    message: String,
+    recoverable: bool,
+    suggested_action: SuggestedAction,
+}
+
+impl From<EngineFailure> for EngineErrorV1 {
+    fn from(failure: EngineFailure) -> Self {
+        Self {
+            schema_version: ENGINE_SCHEMA_VERSION,
+            code: failure.code,
+            message: failure.message,
+            recoverable: failure.recoverable,
+            suggested_action: failure.suggested_action,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EngineContextV1 {
+    schema_version: u8,
+    state: EngineState,
+    generation: u64,
+    workspace_id: Option<String>,
+    database_available: bool,
+    maintenance_mode: bool,
+    last_error: Option<EngineErrorV1>,
+}
+
+impl From<EngineSnapshot> for EngineContextV1 {
+    fn from(snapshot: EngineSnapshot) -> Self {
+        Self {
+            schema_version: ENGINE_SCHEMA_VERSION,
+            state: snapshot.state,
+            generation: snapshot.generation,
+            workspace_id: snapshot.workspace_id,
+            database_available: snapshot.database_available,
+            maintenance_mode: snapshot.maintenance_mode,
+            last_error: snapshot.last_error.map(EngineErrorV1::from),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -122,6 +173,35 @@ fn platform_name() -> &'static str {
 mod tests {
     use super::*;
     use crate::domain::{AppPreferences, DialogPreview, DialogPreviewKind};
+
+    #[test]
+    fn engine_context_and_errors_use_the_versioned_camel_case_wire_shape() {
+        let context = EngineContextV1::from(EngineSnapshot {
+            state: EngineState::Degraded,
+            generation: 2,
+            workspace_id: None,
+            database_available: false,
+            maintenance_mode: false,
+            last_error: Some(EngineFailure::new(
+                "workspace_locked",
+                "The workspace is already in use",
+                true,
+                SuggestedAction::RestartApp,
+            )),
+        });
+
+        let value = serde_json::to_value(context).unwrap();
+        assert_eq!(value["schemaVersion"], ENGINE_SCHEMA_VERSION);
+        assert_eq!(value["state"], "degraded");
+        assert_eq!(value["generation"], 2);
+        assert!(value["workspaceId"].is_null());
+        assert_eq!(value["databaseAvailable"], false);
+        assert_eq!(value["maintenanceMode"], false);
+        assert_eq!(value["lastError"]["schemaVersion"], ENGINE_SCHEMA_VERSION);
+        assert_eq!(value["lastError"]["code"], "workspace_locked");
+        assert_eq!(value["lastError"]["suggestedAction"], "restartApp");
+        assert!(value.get("workspace_id").is_none());
+    }
 
     #[test]
     fn context_uses_the_camel_case_versioned_wire_shape() {

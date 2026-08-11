@@ -52,25 +52,48 @@ DESKTOP_APP_FILES = (
     "vite.config.ts",
     "src/App.vue",
     "src/application/useDesktopShell.ts",
+    "src/application/useLocalWorkspace.ts",
+    "src/components/LocalWorkspace.vue",
+    "src/infrastructure/tauri/localEngineBridge.ts",
     "src/infrastructure/tauri/shellBridge.ts",
+    "src/types/localEngine.ts",
     "src/types/shell.ts",
+    "contracts/domain-model.lock.json",
+    "docs/local-first-workspace.md",
+    "scripts/check_local_data_contract.py",
+    "tests/test_local_data_contract.py",
     "src-tauri/Cargo.toml",
     "src-tauri/Cargo.lock",
     "src-tauri/tauri.conf.json",
     "src-tauri/capabilities/main-window.json",
     "src-tauri/src/application/mod.rs",
+    "src-tauri/src/application/engine.rs",
     "src-tauri/src/domain/mod.rs",
+    "src-tauri/src/domain/engine.rs",
     "src-tauri/src/infrastructure/mod.rs",
+    "src-tauri/src/infrastructure/workspace.rs",
     "src-tauri/src/ipc/mod.rs",
+    "src-tauri/src/local_data/mod.rs",
+    "src-tauri/src/local_data/migration.rs",
+    "src-tauri/src/local_data/questions.rs",
     "src-tauri/src/sync/mod.rs",
     "src-tauri/migrations/README.md",
+    "src-tauri/migrations/0001_local_data.sql",
+    "src-tauri/src/workspace_features/mod.rs",
+    "src-tauri/src/workspace_features/jobs.rs",
+    "src-tauri/src/workspace_features/paper.rs",
+    "src-tauri/src/workspace_features/generation.rs",
+    "src-tauri/src/workspace_features/export/mod.rs",
+    "src-tauri/src/workspace_features/export/tectonic.rs",
+    "src-tauri/src/workspace_features/backup/mod.rs",
+    "src-tauri/src/workspace_features/backup/service.rs",
 )
 DESKTOP_ALLOWED_MANIFESTS = {
     "package.json",
     "src-tauri/Cargo.toml",
     "contracts/cloud-api-rust/Cargo.toml",
 }
-DESKTOP_COMMANDS = {
+DESKTOP_SHELL_COMMANDS = {
     "get_shell_context",
     "frontend_ready",
     "set_theme_preference",
@@ -79,6 +102,37 @@ DESKTOP_COMMANDS = {
     "preview_question_import_dialog",
     "preview_paper_export_dialog",
 }
+DESKTOP_LOCAL_ENGINE_COMMANDS = {
+    "add_question_image",
+    "cancel_job",
+    "commit_question_import",
+    "commit_workspace_restore",
+    "configure_backup_schedule",
+    "create_question",
+    "create_workspace_backup",
+    "delete_question",
+    "discard_question_import",
+    "discard_workspace_restore",
+    "export_paper",
+    "generate_paper",
+    "get_backup_schedule",
+    "get_engine_context",
+    "get_job",
+    "get_question",
+    "list_question_revisions",
+    "migrate_workspace_data_directory",
+    "prepare_backup_encryption",
+    "restore_question",
+    "retry_engine_start",
+    "revert_question",
+    "search_questions",
+    "select_backup_destination",
+    "select_data_directory",
+    "select_question_import",
+    "select_workspace_restore",
+    "update_question",
+}
+DESKTOP_COMMANDS = DESKTOP_SHELL_COMMANDS | DESKTOP_LOCAL_ENGINE_COMMANDS
 DESKTOP_EVENT_PERMISSIONS = {"core:event:allow-listen", "core:event:allow-unlisten"}
 DESKTOP_FORBIDDEN_NPM_DEPENDENCIES = {
     "nuxt",
@@ -211,34 +265,43 @@ def validate_desktop_shell(root: Path, errors: list[str]) -> None:
     if capability.get("windows") != ["main"]:
         errors.append("The main-window capability must target only the main window")
     if permissions != expected_permissions:
-        errors.append("The main-window capability permissions differ from the narrow CLE-23 allowlist")
+        errors.append("The main-window capability permissions differ from the local-first allowlist")
     for permission in permissions:
         if permission == "core:default" or permission.startswith(("fs:", "http:", "shell:", "sql:")):
             errors.append(f"forbidden broad Tauri permission: {permission}")
 
-    bridges = {
+    bridge_paths = {
         (root / "src/infrastructure/tauri/shellBridge.ts").resolve(),
         (root / "src/infrastructure/tauri/localEngineBridge.ts").resolve(),
     }
     for path in (root / "src").rglob("*"):
-        if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() not in bridges:
+        if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() not in bridge_paths:
             if re.search(r"\binvoke\s*\(|@tauri-apps/api/(?:core|event)", read_utf8(path, errors)):
                 errors.append(
-                    "Vue application code bypasses the typed Tauri bridge: "
+                    "Vue application code bypasses the typed Tauri bridges: "
                     f"{path.relative_to(root).as_posix()}"
                 )
+
+    local_engine_bridge = read_utf8(
+        root / "src/infrastructure/tauri/localEngineBridge.ts", errors
+    )
+    bridge_commands = set(
+        re.findall(r"\binvoke(?:<[^>]+>)?\(\s*['\"]([a-z][a-z0-9_]+)['\"]", local_engine_bridge)
+    )
+    if bridge_commands != DESKTOP_LOCAL_ENGINE_COMMANDS:
+        errors.append("localEngineBridge.ts commands differ from the local-first allowlist")
 
     build_script = read_utf8(root / "src-tauri/build.rs", errors)
     declared_commands = set(re.findall(r'"([a-z][a-z0-9_]+)"', build_script))
     if declared_commands != DESKTOP_COMMANDS:
-        errors.append("src-tauri/build.rs command manifest differs from the CLE-23 allowlist")
+        errors.append("src-tauri/build.rs command manifest differs from the local-first allowlist")
 
     rust_source = "\n".join(
         read_utf8(path, errors) for path in (root / "src-tauri/src").rglob("*.rs")
     )
     for forbidden in ("contracts/cloud-api-rust", "reqwest::", "sqlx::"):
         if forbidden in rust_source:
-            errors.append(f"Desktop shell source starts a deferred integration: {forbidden}")
+            errors.append(f"Desktop source starts a forbidden integration: {forbidden}")
 
 
 def matches_secret(path: Path) -> bool:
