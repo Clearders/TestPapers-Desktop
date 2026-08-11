@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-discard-question-import"
+description = "Enables the discard_question_import command without any pre-configured scope."
+commands.allow = ["discard_question_import"]
+
+[[permission]]
+identifier = "deny-discard-question-import"
+description = "Denies the discard_question_import command without any pre-configured scope."
+commands.deny = ["discard_question_import"]
