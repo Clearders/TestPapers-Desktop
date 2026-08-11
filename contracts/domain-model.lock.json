@@ -1,0 +1,10 @@
+{
+  "contract": "TestPapers local/cloud domain model",
+  "version": "1.0.0",
+  "status": "accepted",
+  "sourceRepository": "Clearders/TestPapers",
+  "sourcePath": "docs/data-model/domain-model.json",
+  "linearIssue": "CLE-15",
+  "sha256": "2eb36b70e259863bdabe1d89367374f890dc4b023b350b737cf4ad1b2dd9b91e",
+  "implementationIssues": ["CLE-25", "CLE-26", "CLE-27", "CLE-28"]
+}
