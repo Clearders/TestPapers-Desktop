@@ -4,9 +4,10 @@ use std::{
 };
 
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::{
-    local_data::{LocalDataStore, SyncControlData, SyncRuntimePhase},
+    local_data::{LocalDataStore, SyncConflictRecoveryRecord, SyncControlData, SyncRuntimePhase},
     sync::{CloudSyncTransport, SyncRunReport, SyncWorker, SyncWorkerError, TransportErrorKind},
 };
 
@@ -169,6 +170,33 @@ impl SyncControlApplication {
     pub(crate) fn snapshot(&self) -> Result<SyncStatusSnapshot, String> {
         let state = lock(&self.state);
         snapshot_from_state(&state)
+    }
+
+    pub(crate) fn conflicts(&self) -> Result<Vec<SyncConflictRecoveryRecord>, String> {
+        let session = lock(&self.state).session.clone();
+        let Some(session) = session else {
+            return Ok(Vec::new());
+        };
+        session
+            .store
+            .list_sync_conflict_recovery(&session.account_id)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(crate) fn stage_resolution(
+        &self,
+        conflict_id: &str,
+        request: &Value,
+    ) -> Result<SyncStatusSnapshot, String> {
+        let session = lock(&self.state)
+            .session
+            .clone()
+            .ok_or_else(|| "Sign in before resolving a Sync conflict".to_owned())?;
+        session
+            .store
+            .stage_conflict_resolution(&session.account_id, conflict_id, request)
+            .map_err(|error| error.to_string())?;
+        self.start_cycle(false)
     }
 
     pub(crate) fn pause(&self) -> Result<SyncStatusSnapshot, String> {

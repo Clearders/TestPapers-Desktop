@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
@@ -58,6 +59,22 @@ pub(crate) fn retry_sync(
     state: State<'_, SyncControlApplication>,
 ) -> Result<SyncStatusSnapshot, String> {
     state.retry_now()
+}
+
+#[tauri::command]
+pub(crate) fn list_sync_conflicts(
+    state: State<'_, SyncControlApplication>,
+) -> Result<Vec<crate::local_data::SyncConflictRecoveryRecord>, String> {
+    state.conflicts()
+}
+
+#[tauri::command]
+pub(crate) fn resolve_sync_conflict(
+    state: State<'_, SyncControlApplication>,
+    conflict_id: String,
+    request: Value,
+) -> Result<SyncStatusSnapshot, String> {
+    state.stage_resolution(&conflict_id, &request)
 }
 
 #[tauri::command]

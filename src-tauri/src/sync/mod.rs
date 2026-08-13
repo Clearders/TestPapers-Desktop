@@ -13,8 +13,8 @@ use testpapers_cloud_api::{
 };
 
 use crate::local_data::{
-    LocalDataError, LocalDataStore, PreparedSyncBatch, RemoteSyncChange, SyncOperationOutcome,
-    SyncRuntimePhase,
+    LocalDataError, LocalDataStore, PreparedConflictResolution, PreparedSyncBatch,
+    RemoteSyncChange, SyncOperationOutcome, SyncRuntimePhase,
 };
 
 const PROTOCOL_VERSION: i32 = 1;
@@ -73,6 +73,12 @@ pub(crate) trait SyncTransport: Send + Sync + 'static {
         device_id: &str,
         batch: &PreparedSyncBatch,
     ) -> Result<Vec<SyncOperationOutcome>, TransportError>;
+    fn resolve_conflict(
+        &self,
+        _resolution: &PreparedConflictResolution,
+    ) -> Result<Value, TransportError> {
+        Err(fatal("SYNC_CONFLICT_RESOLUTION_UNSUPPORTED"))
+    }
 }
 
 pub(crate) struct CloudSyncTransport {
@@ -211,6 +217,27 @@ impl SyncTransport for CloudSyncTransport {
             })
             .collect()
     }
+
+    fn resolve_conflict(
+        &self,
+        resolution: &PreparedConflictResolution,
+    ) -> Result<Value, TransportError> {
+        let request = serde_json::from_value::<models::SyncConflictResolutionRequest>(
+            resolution.request.clone(),
+        )
+        .map_err(|_| fatal("SYNC_RESOLUTION_REQUEST_INVALID"))?;
+        let response = self
+            .runtime
+            .block_on(sync_api::resolve_sync_conflict(
+                self.api.configuration(),
+                sync_api::ResolveSyncConflictParams {
+                    conflict_id: resolution.conflict_id.clone(),
+                    sync_conflict_resolution_request: request,
+                },
+            ))
+            .map_err(map_api_error)?;
+        serde_json::to_value(*response.data).map_err(|_| fatal("SYNC_RESOLUTION_RESPONSE_INVALID"))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -294,6 +321,20 @@ impl<T: SyncTransport> SyncWorker<T> {
             SyncRuntimePhase::Push,
             None,
         )?;
+        while let Some(resolution) = self.store.prepare_next_conflict_resolution()? {
+            match self.transport.resolve_conflict(&resolution) {
+                Ok(response) => {
+                    self.store
+                        .settle_conflict_resolution(&resolution.operation_id, &response)?;
+                    report.pushed_operations = report.pushed_operations.saturating_add(1);
+                }
+                Err(error) => {
+                    self.store
+                        .retry_conflict_resolution(&resolution.operation_id)?;
+                    return self.finish_error(SyncWorkerError::Transport(error), &mut report);
+                }
+            }
+        }
         if let Some(batch) =
             self.store
                 .prepare_sync_batch(&self.account_id, &self.device_id, 100)?

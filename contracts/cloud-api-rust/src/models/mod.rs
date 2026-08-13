@@ -122,6 +122,8 @@ pub mod envelope_list_question_revision_entity__;
 pub use self::envelope_list_question_revision_entity__::EnvelopeListQuestionRevisionEntity;
 pub mod envelope_list_str__;
 pub use self::envelope_list_str__::EnvelopeListStr;
+pub mod envelope_list_sync_conflict_resolution_record__;
+pub use self::envelope_list_sync_conflict_resolution_record__::EnvelopeListSyncConflictResolutionRecord;
 pub mod envelope_list_sync_entity_version_record__;
 pub use self::envelope_list_sync_entity_version_record__::EnvelopeListSyncEntityVersionRecord;
 pub mod envelope_list_user_entity__;

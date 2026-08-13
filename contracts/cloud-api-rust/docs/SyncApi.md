@@ -11,6 +11,7 @@ Method | HTTP request | Description
 [**get_sync_conflict**](SyncApi.md#get_sync_conflict) | **GET** /api/v1/sync/conflicts/{conflict_id} | Get Sync Conflict
 [**get_sync_snapshot**](SyncApi.md#get_sync_snapshot) | **GET** /api/v1/sync/snapshot | Get Sync Snapshot
 [**initiate_sync_attachment_upload**](SyncApi.md#initiate_sync_attachment_upload) | **POST** /api/v1/sync/attachments/uploads | Initiate Sync Attachment Upload
+[**list_sync_conflict_resolutions**](SyncApi.md#list_sync_conflict_resolutions) | **GET** /api/v1/sync/conflicts/{conflict_id}/resolutions | List Sync Conflict Resolutions
 [**list_sync_entity_versions**](SyncApi.md#list_sync_entity_versions) | **GET** /api/v1/sync/entities/{entity_type}/{entity_id}/versions | List Sync Entity Versions
 [**pull_sync_changes**](SyncApi.md#pull_sync_changes) | **GET** /api/v1/sync/pull | Pull Sync Changes
 [**push_sync_mutations**](SyncApi.md#push_sync_mutations) | **POST** /api/v1/sync/push | Push Sync Mutations
@@ -213,6 +214,34 @@ Name | Type | Description  | Required | Notes
 ### HTTP request headers
 
 - **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+
+## list_sync_conflict_resolutions
+
+> models::EnvelopeListSyncConflictResolutionRecord list_sync_conflict_resolutions(conflict_id)
+List Sync Conflict Resolutions
+
+### Parameters
+
+
+Name | Type | Description  | Required | Notes
+------------- | ------------- | ------------- | ------------- | -------------
+**conflict_id** | **String** |  | [required] |
+
+### Return type
+
+[**models::EnvelopeListSyncConflictResolutionRecord**](Envelope_list_SyncConflictResolutionRecord__.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

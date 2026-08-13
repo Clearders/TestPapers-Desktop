@@ -1839,6 +1839,32 @@
         "title": "Envelope[list[QuestionRevisionEntity]]",
         "type": "object"
       },
+      "Envelope_list_SyncConflictResolutionRecord__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SyncConflictResolutionRecord"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaInfo"
+          },
+          "success": {
+            "const": true,
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[SyncConflictResolutionRecord]]",
+        "type": "object"
+      },
       "Envelope_list_SyncEntityVersionRecord__": {
         "properties": {
           "data": {
@@ -14519,6 +14545,123 @@
           }
         ],
         "summary": "Get Sync Conflict",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/sync/conflicts/{conflict_id}/resolutions": {
+      "get": {
+        "operationId": "list_sync_conflict_resolutions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conflict_id",
+            "required": true,
+            "schema": {
+              "title": "Conflict Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_SyncConflictResolutionRecord__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The sync cursor or request is invalid."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The caller is not allowed to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested resource was not found."
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The sync cursor or snapshot has expired."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "426": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The requested sync protocol version is unsupported."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Sync Conflict Resolutions",
         "tags": [
           "sync"
         ]

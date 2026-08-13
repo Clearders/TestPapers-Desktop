@@ -43,6 +43,8 @@ pub fn run() {
             ipc::commands::resume_sync,
             ipc::commands::sync_now,
             ipc::commands::retry_sync,
+            ipc::commands::list_sync_conflicts,
+            ipc::commands::resolve_sync_conflict,
             ipc::commands::configure_sync_session,
             ipc::commands::get_shell_context,
             ipc::commands::frontend_ready,

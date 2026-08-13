@@ -2,6 +2,7 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import { parseSyncStatusChangedEvent, parseSyncStatusSnapshot, type SyncStatusSnapshot } from '../../types/sync'
+import type { SyncConflictRecoveryRecord } from '../../types/syncConflict'
 
 export const SYNC_EVENTS = { statusChanged: 'testpapers://sync/status-changed' } as const
 
@@ -12,6 +13,8 @@ export interface SyncBridge {
   resume(): Promise<SyncStatusSnapshot>
   syncNow(): Promise<SyncStatusSnapshot>
   retry(): Promise<SyncStatusSnapshot>
+  listConflicts(): Promise<SyncConflictRecoveryRecord[]>
+  resolveConflict(conflictId: string, request: Record<string, unknown>): Promise<SyncStatusSnapshot>
   onStatusChanged(handler: (status: SyncStatusSnapshot) => void): Promise<UnlistenFn>
 }
 
@@ -33,6 +36,8 @@ export const tauriSyncBridge: SyncBridge = {
   resume: () => invokeStatus('resume_sync'),
   syncNow: () => invokeStatus('sync_now'),
   retry: () => invokeStatus('retry_sync'),
+  listConflicts: () => tauriInvoke<SyncConflictRecoveryRecord[]>('list_sync_conflicts'),
+  resolveConflict: async (conflictId, request) => parseSyncStatusSnapshot(await tauriInvoke('resolve_sync_conflict', { conflictId, request })),
   onStatusChanged(handler) {
     return listen(SYNC_EVENTS.statusChanged, event => handler(parseSyncStatusChangedEvent(event.payload).state))
   }

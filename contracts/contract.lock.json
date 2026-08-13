@@ -3,8 +3,8 @@
   "source": {
     "repository": "https://github.com/Clearders/TestPaper-backend",
     "ref": "api-v1.2.0",
-    "commit": "cee7eeca05c714f86a86ba2189e6c19631077266",
-    "sha256": "dda10059b33daf655b9e8b622c973df6200022f21a327d675c51090e34924deb"
+    "commit": "82bee4d6101ffccff846f7b67e7c815e4babb98a",
+    "sha256": "e8d3782bf736ff5c3978cad34f5efe4acdbac686a67ed289400dc50c9cd426e4"
   },
   "generator": {
     "name": "openapi-generator-cli",

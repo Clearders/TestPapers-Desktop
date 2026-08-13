@@ -20,6 +20,8 @@ describe('Sync control lifecycle', () => {
       resume: vi.fn().mockResolvedValue(authenticated),
       syncNow: vi.fn().mockResolvedValue({ ...authenticated, status: 'syncing', phase: 'pull' }),
       retry: vi.fn().mockResolvedValue(authenticated),
+      listConflicts: vi.fn().mockResolvedValue([]),
+      resolveConflict: vi.fn().mockResolvedValue(authenticated),
       onStatusChanged: vi.fn(async listener => { handler = listener; return unlisten })
     }
     let control: ReturnType<typeof createSyncControl> | undefined
