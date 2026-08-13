@@ -1,0 +1,180 @@
+{
+  "protocolVersion": 1,
+  "canonicalization": "UTF-8 JSON with lexicographically sorted object keys, canonical numbers, and preserved array order.",
+  "canonicalCases": [
+    {
+      "name": "sorted-nested-content",
+      "input": {
+        "text": "2 + 2",
+        "tags": [
+          "algebra",
+          "exam"
+        ],
+        "nested": {
+          "z": false,
+          "a": 1
+        }
+      },
+      "canonical": "{\"nested\":{\"a\":1,\"z\":false},\"tags\":[\"algebra\",\"exam\"],\"text\":\"2 + 2\"}",
+      "sha256": "8517ed5d0a2f075bf94dfdd5e926df3c056ead9ac27743eef1aafebdb296b446"
+    },
+    {
+      "name": "domain-hash-envelope",
+      "input": {
+        "schemaVersion": 1,
+        "entity": "question",
+        "content": {
+          "subjects": [
+            "math"
+          ],
+          "scoreWeight": "1.5",
+          "answer": "4",
+          "text": "2 + 2"
+        }
+      },
+      "canonical": "{\"content\":{\"answer\":\"4\",\"scoreWeight\":\"1.5\",\"subjects\":[\"math\"],\"text\":\"2 + 2\"},\"entity\":\"question\",\"schemaVersion\":1}",
+      "sha256": "46922cde211d810eeb80172c1bed9764dea275953b0ddbc9e9ec41b1afff83d7"
+    }
+  ],
+  "lifecycleCases": [
+    {
+      "name": "create-update-delete-restore",
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "restore"
+      ],
+      "acceptedVersions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "finalDeleted": false
+    },
+    {
+      "name": "same-hash-update",
+      "actions": [
+        "create",
+        "update"
+      ],
+      "acceptedVersions": [
+        1,
+        1
+      ],
+      "secondStatus": "noop"
+    },
+    {
+      "name": "stale-update-after-delete",
+      "actions": [
+        "create",
+        "delete",
+        "update"
+      ],
+      "acceptedVersions": [
+        1,
+        2
+      ],
+      "thirdStatus": "conflict"
+    }
+  ],
+  "idempotencyCases": [
+    {
+      "name": "exact-batch-replay",
+      "sameBatchId": true,
+      "sameCanonicalDigest": true,
+      "executeCount": 1,
+      "response": "original"
+    },
+    {
+      "name": "batch-id-body-mismatch",
+      "sameBatchId": true,
+      "sameCanonicalDigest": false,
+      "error": "SYNC_IDEMPOTENCY_MISMATCH"
+    },
+    {
+      "name": "dependency-failure",
+      "dependencyStatus": "conflict",
+      "dependentStatus": "dependencyFailed",
+      "error": "SYNC_DEPENDENCY_FAILED"
+    }
+  ],
+  "errorCases": [
+    {
+      "code": "SYNC_PROTOCOL_UNSUPPORTED",
+      "http": 426,
+      "retry": "upgrade"
+    },
+    {
+      "code": "SYNC_BATCH_INVALID",
+      "http": 422,
+      "retry": "none"
+    },
+    {
+      "code": "SYNC_BATCH_TOO_LARGE",
+      "http": 413,
+      "retry": "splitUnsubmittedBatch"
+    },
+    {
+      "code": "SYNC_IDEMPOTENCY_MISMATCH",
+      "http": 409,
+      "retry": "none"
+    },
+    {
+      "code": "SYNC_DEPENDENCY_FAILED",
+      "http": 424,
+      "retry": "afterDependencyResolution"
+    },
+    {
+      "code": "SYNC_CONFLICT",
+      "http": 409,
+      "retry": "userResolution"
+    },
+    {
+      "code": "SYNC_CURSOR_INVALID",
+      "http": 400,
+      "retry": "restartRequest"
+    },
+    {
+      "code": "SYNC_CURSOR_EXPIRED",
+      "http": 410,
+      "retry": "snapshot"
+    },
+    {
+      "code": "SYNC_SNAPSHOT_EXPIRED",
+      "http": 410,
+      "retry": "restartSnapshot"
+    },
+    {
+      "code": "SYNC_ENTITY_FORBIDDEN",
+      "http": 403,
+      "retry": "none"
+    },
+    {
+      "code": "SYNC_ENTITY_NOT_FOUND",
+      "http": 404,
+      "retry": "none"
+    },
+    {
+      "code": "SYNC_ENTITY_SCHEMA_UNSUPPORTED",
+      "http": 422,
+      "retry": "upgrade"
+    },
+    {
+      "code": "SYNC_UPLOAD_EXPIRED",
+      "http": 410,
+      "retry": "reinitiate"
+    },
+    {
+      "code": "SYNC_UPLOAD_CHUNK_MISMATCH",
+      "http": 409,
+      "retry": "correctChunk"
+    },
+    {
+      "code": "SYNC_ATTACHMENT_HASH_MISMATCH",
+      "http": 422,
+      "retry": "reupload"
+    }
+  ]
+}

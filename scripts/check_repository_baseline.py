@@ -36,12 +36,16 @@ REQUIRED_FILES = (
 )
 DESKTOP_CONTRACT_FILES = (
     "contracts/contract.lock.json",
+    "contracts/sync-v1.schema.json",
+    "contracts/sync-v1.fixtures.json",
+    "contracts/sync-v1.lock.json",
     "contracts/openapi-generator-config.json",
     "contracts/openapi.json",
     "contracts/cloud-api-rust/Cargo.toml",
     "contracts/cloud-api-rust/src/adapter.rs",
     "contracts/cloud-api-rust/tests/adapter.rs",
     "scripts/check_cloud_api_rust.py",
+    "scripts/check_sync_contract.py",
     "scripts/cloud_api_codegen.py",
     "scripts/regenerate_cloud_api_rust.py",
 )

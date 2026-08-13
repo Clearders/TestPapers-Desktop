@@ -1,0 +1,13 @@
+{
+  "protocolVersion": 1,
+  "source": {
+    "repository": "https://github.com/Clearders/TestPapers",
+    "adr": [
+      "docs/adr/0003-sync-v1-wire-protocol.md",
+      "docs/adr/0004-sync-v1-cursors-idempotency-and-recovery.md"
+    ]
+  },
+  "schemaSha256": "df204e0a2dda3ce5a4b727803f1901a5830ec26f70bb6fbe481468a2fa285c50",
+  "fixturesSha256": "a1f04248c986430beeca3b70fae813cc035975ea3729e631e0331b91dfb005a1",
+  "semanticFingerprint": "e56796edc9128db7e15621c1f8feaed97680f7803a43fa5d3c44405b42e31ae7"
+}
