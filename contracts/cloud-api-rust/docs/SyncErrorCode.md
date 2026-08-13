@@ -18,6 +18,7 @@
 | SyncEntitySchemaUnsupported | SYNC_ENTITY_SCHEMA_UNSUPPORTED |
 | SyncUploadExpired | SYNC_UPLOAD_EXPIRED |
 | SyncUploadChunkMismatch | SYNC_UPLOAD_CHUNK_MISMATCH |
+| SyncUploadIncomplete | SYNC_UPLOAD_INCOMPLETE |
 | SyncAttachmentHashMismatch | SYNC_ATTACHMENT_HASH_MISMATCH |
 
 

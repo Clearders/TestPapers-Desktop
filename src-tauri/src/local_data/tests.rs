@@ -140,6 +140,7 @@ fn new_database_is_migrated_and_bound_to_workspace_identity() {
         "sync_operation_dependencies",
         "sync_operation_results",
         "sync_conflict_baselines",
+        "sync_conflict_resolutions",
         "sync_snapshot_rebuilds",
         "sync_snapshot_entries",
         "sync_remote_entities",
@@ -461,6 +462,7 @@ fn startup_recovery_is_atomic_idempotent_and_preserves_unacked_work() {
         reopened.startup_recovery_report(),
         StartupRecoveryReport {
             retryable_operations: 1,
+            retryable_resolutions: 0,
             reset_runtime_states: 1,
             retryable_snapshot_rebuilds: 1,
         }
@@ -555,6 +557,161 @@ fn stored_operation_response_is_exact_and_survives_queue_settlement() {
             .unwrap(),
         Some(response)
     );
+}
+
+#[test]
+fn conflict_resolution_survives_restart_and_commits_exactly_once() {
+    let (directory, store) = test_store();
+    let config = StoreConfig {
+        database_path: store.database_path.clone(),
+        blob_root: store.blob_root.clone(),
+        workspace_id: store.workspace_id().into(),
+        local_principal_id: store.local_principal_id().into(),
+    };
+    let account_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let question = store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Local conflict candidate"),
+        })
+        .unwrap();
+    let original_operation_id = store.list_pending_mutations(10).unwrap()[0]
+        .operation_id
+        .clone();
+    store.register_sync_device(&account_id, &device_id).unwrap();
+    store
+        .apply_remote_page(
+            &account_id,
+            &device_id,
+            &[RemoteSyncChange {
+                sequence: "cloud-2".into(),
+                entity_type: "question".into(),
+                entity_id: question.id.clone(),
+                kind: "update".into(),
+                version: 2,
+                content_hash: "c".repeat(64),
+                snapshot: Some(json!({"text": "Cloud candidate"})),
+                updated_at: 200,
+            }],
+            "cursor-2",
+        )
+        .unwrap();
+    let conflict_id = store
+        .connection()
+        .query_row(
+            "SELECT conflict_id FROM sync_conflict_baselines WHERE operation_id = ?1",
+            [&original_operation_id],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap();
+    let resolution_operation_id = Uuid::now_v7().to_string();
+    let request = json!({
+        "protocolVersion": 1,
+        "operationId": resolution_operation_id,
+        "action": "keepLocal",
+        "currentVersion": 2,
+        "currentContentHash": "c".repeat(64),
+        "payload": null,
+        "newEntityId": null,
+        "undoesResolutionId": null,
+    });
+    let staged = store
+        .stage_conflict_resolution(&conflict_id, &request)
+        .unwrap();
+    assert_eq!(
+        store
+            .stage_conflict_resolution(&conflict_id, &request)
+            .unwrap(),
+        staged
+    );
+    assert_eq!(
+        store.prepare_next_conflict_resolution().unwrap(),
+        Some(staged.clone())
+    );
+    assert_eq!(
+        store
+            .connection()
+            .query_row(
+                "SELECT queue_state FROM pending_mutations WHERE operation_id = ?1",
+                [&original_operation_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "conflict"
+    );
+    drop(store);
+
+    let reopened = LocalDataStore::open(config).unwrap();
+    assert_eq!(reopened.startup_recovery_report().retryable_resolutions, 1);
+    assert_eq!(
+        reopened.prepare_next_conflict_resolution().unwrap(),
+        Some(staged)
+    );
+    let response = json!({
+        "protocolVersion": 1,
+        "resolutionId": Uuid::now_v7().to_string(),
+        "conflictId": conflict_id,
+        "operationId": resolution_operation_id,
+        "action": "keepLocal",
+        "actorDeviceId": device_id,
+        "acceptedVersion": 3,
+        "acceptedContentHash": "d".repeat(64),
+        "result": {
+            "schemaVersion": 1,
+            "version": 3,
+            "contentHash": "d".repeat(64),
+            "mutationKind": "update",
+            "tombstone": false,
+            "payload": {"text": "Local conflict candidate"},
+            "deviceId": "desktop",
+            "modifiedAt": "2026-08-13T00:00:00Z"
+        },
+        "newEntityId": null,
+        "undoesResolutionId": null,
+        "resolvedAt": "2026-08-13T00:00:00Z"
+    });
+    reopened
+        .settle_conflict_resolution(&resolution_operation_id, &response)
+        .unwrap();
+    reopened
+        .settle_conflict_resolution(&resolution_operation_id, &response)
+        .unwrap();
+    let mut mismatched_response = response.clone();
+    mismatched_response["acceptedVersion"] = json!(4);
+    assert!(matches!(
+        reopened.settle_conflict_resolution(&resolution_operation_id, &mismatched_response),
+        Err(LocalDataError::Corrupt(_))
+    ));
+    let (queue_state, conflict_state, resolution_state) = reopened
+        .connection()
+        .query_row(
+            "SELECT p.queue_state, c.resolution_state, r.state
+             FROM pending_mutations p
+             JOIN sync_conflict_baselines c ON c.operation_id = p.operation_id
+             JOIN sync_conflict_resolutions r ON r.conflict_id = c.conflict_id
+             WHERE p.operation_id = ?1",
+            [&original_operation_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        (
+            queue_state.as_str(),
+            conflict_state.as_str(),
+            resolution_state.as_str()
+        ),
+        ("settled", "resolved", "accepted")
+    );
+    drop(reopened);
+    drop(directory);
 }
 
 #[test]

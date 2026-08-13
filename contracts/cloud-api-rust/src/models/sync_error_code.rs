@@ -42,6 +42,8 @@ pub enum SyncErrorCode {
     SyncUploadExpired,
     #[serde(rename = "SYNC_UPLOAD_CHUNK_MISMATCH")]
     SyncUploadChunkMismatch,
+    #[serde(rename = "SYNC_UPLOAD_INCOMPLETE")]
+    SyncUploadIncomplete,
     #[serde(rename = "SYNC_ATTACHMENT_HASH_MISMATCH")]
     SyncAttachmentHashMismatch,
 }
@@ -63,6 +65,7 @@ impl std::fmt::Display for SyncErrorCode {
             Self::SyncEntitySchemaUnsupported => write!(f, "SYNC_ENTITY_SCHEMA_UNSUPPORTED"),
             Self::SyncUploadExpired => write!(f, "SYNC_UPLOAD_EXPIRED"),
             Self::SyncUploadChunkMismatch => write!(f, "SYNC_UPLOAD_CHUNK_MISMATCH"),
+            Self::SyncUploadIncomplete => write!(f, "SYNC_UPLOAD_INCOMPLETE"),
             Self::SyncAttachmentHashMismatch => write!(f, "SYNC_ATTACHMENT_HASH_MISMATCH"),
         }
     }

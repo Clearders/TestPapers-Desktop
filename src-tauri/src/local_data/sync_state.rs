@@ -14,6 +14,7 @@ use super::{
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct StartupRecoveryReport {
     pub(crate) retryable_operations: u32,
+    pub(crate) retryable_resolutions: u32,
     pub(crate) reset_runtime_states: u32,
     pub(crate) retryable_snapshot_rebuilds: u32,
 }
@@ -514,10 +515,17 @@ pub(super) fn recover_startup(
          WHERE state IN ('applying', 'swapping')",
         [now],
     )?;
+    let retryable_resolutions = transaction.execute(
+        "UPDATE sync_conflict_resolutions
+         SET state = 'pending', updated_at = ?1
+         WHERE state = 'in_flight'",
+        [now],
+    )?;
     transaction.commit()?;
 
     Ok(StartupRecoveryReport {
         retryable_operations: u32::try_from(retryable_operations).unwrap_or(u32::MAX),
+        retryable_resolutions: u32::try_from(retryable_resolutions).unwrap_or(u32::MAX),
         reset_runtime_states: u32::try_from(reset_runtime_states).unwrap_or(u32::MAX),
         retryable_snapshot_rebuilds: u32::try_from(retryable_snapshot_rebuilds).unwrap_or(u32::MAX),
     })

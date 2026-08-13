@@ -1,4 +1,4 @@
-export type SyncConflictEntityType = 'question' | 'paper' | 'draft'
+export type SyncConflictEntityType = 'question' | 'paper' | 'draft' | 'attachment' | 'comment' | 'favorite' | 'setting'
 export type SyncConflictMutationKind = 'create' | 'update' | 'delete' | 'restore' | 'rename' | 'attach' | 'detach'
 export type SyncConflictReason = 'concurrentCreate' | 'divergentContent' | 'tombstoneDivergence' | 'restoreDivergence' | 'renameDivergence'
 export type SyncResolutionAction = 'keepLocal' | 'useCloud' | 'saveCopy' | 'manualMerge' | 'restoreVersion' | 'undo'

@@ -385,7 +385,11 @@
       "enum": [
         "question",
         "paper",
-        "draft"
+        "draft",
+        "attachment",
+        "comment",
+        "favorite",
+        "setting"
       ]
     },
     "conflictReason": {

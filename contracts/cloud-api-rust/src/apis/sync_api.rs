@@ -12,6 +12,8 @@ use super::{configuration, ContentType, Error};
 use crate::{apis::ResponseContent, models};
 use reqwest;
 use serde::{de::Error as _, Deserialize, Serialize};
+use tokio::fs::File as TokioFile;
+use tokio_util::codec::{BytesCodec, FramedRead};
 
 /// struct for passing parameters to the method [`ack_sync_cursor`]
 #[derive(Clone, Debug)]
@@ -19,11 +21,49 @@ pub struct AckSyncCursorParams {
     pub sync_ack_request: models::SyncAckRequest,
 }
 
+/// struct for passing parameters to the method [`complete_sync_attachment_upload`]
+#[derive(Clone, Debug)]
+pub struct CompleteSyncAttachmentUploadParams {
+    pub upload_id: String,
+    pub attachment_upload_complete_request: models::AttachmentUploadCompleteRequest,
+}
+
+/// struct for passing parameters to the method [`download_sync_attachment`]
+#[derive(Clone, Debug)]
+pub struct DownloadSyncAttachmentParams {
+    pub attachment_id: String,
+}
+
+/// struct for passing parameters to the method [`get_sync_attachment_upload`]
+#[derive(Clone, Debug)]
+pub struct GetSyncAttachmentUploadParams {
+    pub upload_id: String,
+}
+
+/// struct for passing parameters to the method [`get_sync_conflict`]
+#[derive(Clone, Debug)]
+pub struct GetSyncConflictParams {
+    pub conflict_id: String,
+}
+
 /// struct for passing parameters to the method [`get_sync_snapshot`]
 #[derive(Clone, Debug)]
 pub struct GetSyncSnapshotParams {
     pub cursor: Option<String>,
     pub page_size: Option<i32>,
+}
+
+/// struct for passing parameters to the method [`initiate_sync_attachment_upload`]
+#[derive(Clone, Debug)]
+pub struct InitiateSyncAttachmentUploadParams {
+    pub attachment_upload_initiate_request: models::AttachmentUploadInitiateRequest,
+}
+
+/// struct for passing parameters to the method [`list_sync_entity_versions`]
+#[derive(Clone, Debug)]
+pub struct ListSyncEntityVersionsParams {
+    pub entity_type: models::SyncEntityType,
+    pub entity_id: String,
 }
 
 /// struct for passing parameters to the method [`pull_sync_changes`]
@@ -37,6 +77,31 @@ pub struct PullSyncChangesParams {
 #[derive(Clone, Debug)]
 pub struct PushSyncMutationsParams {
     pub sync_push_request: models::SyncPushRequest,
+}
+
+/// struct for passing parameters to the method [`put_sync_attachment_chunk`]
+#[derive(Clone, Debug)]
+pub struct PutSyncAttachmentChunkParams {
+    pub upload_id: String,
+    pub ordinal: i32,
+    pub x_chunk_sha256: String,
+    pub body: std::path::PathBuf,
+}
+
+/// struct for passing parameters to the method [`resolve_sync_conflict`]
+#[derive(Clone, Debug)]
+pub struct ResolveSyncConflictParams {
+    pub conflict_id: String,
+    pub sync_conflict_resolution_request: models::SyncConflictResolutionRequest,
+}
+
+/// struct for passing parameters to the method [`restore_sync_entity_version`]
+#[derive(Clone, Debug)]
+pub struct RestoreSyncEntityVersionParams {
+    pub entity_type: models::SyncEntityType,
+    pub entity_id: String,
+    pub version: i32,
+    pub sync_version_restore_request: models::SyncVersionRestoreRequest,
 }
 
 /// struct for typed errors of method [`ack_sync_cursor`]
@@ -54,6 +119,70 @@ pub enum AckSyncCursorError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`complete_sync_attachment_upload`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CompleteSyncAttachmentUploadError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status409(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status429(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`download_sync_attachment`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DownloadSyncAttachmentError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status409(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`get_sync_attachment_upload`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GetSyncAttachmentUploadError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status409(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`get_sync_conflict`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GetSyncConflictError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`get_sync_snapshot`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -61,6 +190,37 @@ pub enum GetSyncSnapshotError {
     Status400(models::ErrorEnvelope),
     Status401(models::ErrorEnvelope),
     Status403(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`initiate_sync_attachment_upload`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum InitiateSyncAttachmentUploadError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status409(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status429(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`list_sync_entity_versions`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ListSyncEntityVersionsError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
     Status410(models::ErrorEnvelope),
     Status422(models::ErrorEnvelope),
     Status426(models::ErrorEnvelope),
@@ -92,6 +252,56 @@ pub enum PushSyncMutationsError {
     Status409(models::ErrorEnvelope),
     Status410(models::ErrorEnvelope),
     Status413(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status429(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`put_sync_attachment_chunk`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PutSyncAttachmentChunkError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status409(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status413(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status429(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`resolve_sync_conflict`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ResolveSyncConflictError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
+    Status422(models::ErrorEnvelope),
+    Status426(models::ErrorEnvelope),
+    Status429(models::ErrorEnvelope),
+    Status500(models::ErrorEnvelope),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`restore_sync_entity_version`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RestoreSyncEntityVersionError {
+    Status400(models::ErrorEnvelope),
+    Status401(models::ErrorEnvelope),
+    Status403(models::ErrorEnvelope),
+    Status404(models::ErrorEnvelope),
+    Status410(models::ErrorEnvelope),
     Status422(models::ErrorEnvelope),
     Status426(models::ErrorEnvelope),
     Status429(models::ErrorEnvelope),
@@ -145,6 +355,186 @@ pub async fn ack_sync_cursor(
     }
 }
 
+pub async fn complete_sync_attachment_upload(
+    configuration: &configuration::Configuration,
+    params: CompleteSyncAttachmentUploadParams,
+) -> Result<models::EnvelopeAttachmentUploadStatus, Error<CompleteSyncAttachmentUploadError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/attachments/uploads/{upload_id}/complete",
+        configuration.base_path,
+        upload_id = crate::apis::urlencode(params.upload_id)
+    );
+    let mut req_builder = configuration
+        .client
+        .request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+    req_builder = req_builder.json(&params.attachment_upload_complete_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<CompleteSyncAttachmentUploadError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn download_sync_attachment(
+    configuration: &configuration::Configuration,
+    params: DownloadSyncAttachmentParams,
+) -> Result<reqwest::Response, Error<DownloadSyncAttachmentError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/attachments/{attachment_id}/content",
+        configuration.base_path,
+        attachment_id = crate::apis::urlencode(params.attachment_id)
+    );
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+
+    if !status.is_client_error() && !status.is_server_error() {
+        Ok(resp)
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<DownloadSyncAttachmentError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn get_sync_attachment_upload(
+    configuration: &configuration::Configuration,
+    params: GetSyncAttachmentUploadParams,
+) -> Result<models::EnvelopeAttachmentUploadStatus, Error<GetSyncAttachmentUploadError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/attachments/uploads/{upload_id}",
+        configuration.base_path,
+        upload_id = crate::apis::urlencode(params.upload_id)
+    );
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<GetSyncAttachmentUploadError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn get_sync_conflict(
+    configuration: &configuration::Configuration,
+    params: GetSyncConflictParams,
+) -> Result<models::EnvelopeSyncConflictRecord, Error<GetSyncConflictError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/conflicts/{conflict_id}",
+        configuration.base_path,
+        conflict_id = crate::apis::urlencode(params.conflict_id)
+    );
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeSyncConflictRecord`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeSyncConflictRecord`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<GetSyncConflictError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
 pub async fn get_sync_snapshot(
     configuration: &configuration::Configuration,
     params: GetSyncSnapshotParams,
@@ -186,6 +576,103 @@ pub async fn get_sync_snapshot(
     } else {
         let content = resp.text().await?;
         let entity: Option<GetSyncSnapshotError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn initiate_sync_attachment_upload(
+    configuration: &configuration::Configuration,
+    params: InitiateSyncAttachmentUploadParams,
+) -> Result<models::EnvelopeAttachmentUploadStatus, Error<InitiateSyncAttachmentUploadError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/attachments/uploads",
+        configuration.base_path
+    );
+    let mut req_builder = configuration
+        .client
+        .request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+    req_builder = req_builder.json(&params.attachment_upload_initiate_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeAttachmentUploadStatus`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<InitiateSyncAttachmentUploadError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn list_sync_entity_versions(
+    configuration: &configuration::Configuration,
+    params: ListSyncEntityVersionsParams,
+) -> Result<models::EnvelopeListSyncEntityVersionRecord, Error<ListSyncEntityVersionsError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/entities/{entity_type}/{entity_id}/versions",
+        configuration.base_path,
+        entity_type = params.entity_type.to_string(),
+        entity_id = crate::apis::urlencode(params.entity_id)
+    );
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeListSyncEntityVersionRecord`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeListSyncEntityVersionRecord`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<ListSyncEntityVersionsError> = serde_json::from_str(&content).ok();
         Err(Error::ResponseError(ResponseContent {
             status,
             content,
@@ -281,6 +768,160 @@ pub async fn push_sync_mutations(
     } else {
         let content = resp.text().await?;
         let entity: Option<PushSyncMutationsError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn put_sync_attachment_chunk(
+    configuration: &configuration::Configuration,
+    params: PutSyncAttachmentChunkParams,
+) -> Result<models::EnvelopeAttachmentChunkReceipt, Error<PutSyncAttachmentChunkError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/attachments/uploads/{upload_id}/chunks/{ordinal}",
+        configuration.base_path,
+        upload_id = crate::apis::urlencode(params.upload_id),
+        ordinal = params.ordinal
+    );
+    let mut req_builder = configuration.client.request(reqwest::Method::PUT, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    req_builder = req_builder.header("X-Chunk-SHA256", params.x_chunk_sha256.to_string());
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+    let file = TokioFile::open(params.body).await?;
+    let stream = FramedRead::new(file, BytesCodec::new());
+    req_builder = req_builder.body(reqwest::Body::wrap_stream(stream));
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeAttachmentChunkReceipt`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeAttachmentChunkReceipt`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<PutSyncAttachmentChunkError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn resolve_sync_conflict(
+    configuration: &configuration::Configuration,
+    params: ResolveSyncConflictParams,
+) -> Result<models::EnvelopeSyncConflictResolutionRecord, Error<ResolveSyncConflictError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/conflicts/{conflict_id}/resolve",
+        configuration.base_path,
+        conflict_id = crate::apis::urlencode(params.conflict_id)
+    );
+    let mut req_builder = configuration
+        .client
+        .request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+    req_builder = req_builder.json(&params.sync_conflict_resolution_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeSyncConflictResolutionRecord`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeSyncConflictResolutionRecord`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<ResolveSyncConflictError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent {
+            status,
+            content,
+            entity,
+        }))
+    }
+}
+
+pub async fn restore_sync_entity_version(
+    configuration: &configuration::Configuration,
+    params: RestoreSyncEntityVersionParams,
+) -> Result<models::EnvelopeSyncVersionRestoreRecord, Error<RestoreSyncEntityVersionError>> {
+    let uri_str = format!(
+        "{}/api/v1/sync/entities/{entity_type}/{entity_id}/versions/{version}/restore",
+        configuration.base_path,
+        entity_type = params.entity_type.to_string(),
+        entity_id = crate::apis::urlencode(params.entity_id),
+        version = params.version
+    );
+    let mut req_builder = configuration
+        .client
+        .request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref token) = configuration.bearer_access_token {
+        req_builder = req_builder.bearer_auth(token.to_owned());
+    };
+    req_builder = req_builder.json(&params.sync_version_restore_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::EnvelopeSyncVersionRestoreRecord`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::EnvelopeSyncVersionRestoreRecord`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<RestoreSyncEntityVersionError> = serde_json::from_str(&content).ok();
         Err(Error::ResponseError(ResponseContent {
             status,
             content,
