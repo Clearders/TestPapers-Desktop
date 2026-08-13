@@ -7,6 +7,7 @@ mod migration;
 mod model;
 mod papers;
 mod questions;
+mod sync_state;
 
 use std::{
     path::PathBuf,
@@ -24,8 +25,9 @@ pub(crate) use model::{
     AttachmentRecord, CreateQuestion, DeletedFilter, Difficulty, EssayBlankSpace, HistoryAction,
     MutationBase, NewQuestionAttachment, PendingMutation, QuestionContent, QuestionRecord,
     QuestionRevision, QuestionSearch, QuestionSearchPage, QuestionType, ReplicationScope,
-    UpdateQuestion,
+    SyncQueueState, UpdateQuestion,
 };
+pub(crate) use sync_state::{StartupRecoveryReport, SyncDeviceState, SyncRuntimePhase};
 
 #[derive(Clone, Debug)]
 pub(crate) struct StoreConfig {
@@ -42,11 +44,13 @@ pub(crate) struct LocalDataStore {
     workspace_id: String,
     local_principal_id: String,
     migration_report: MigrationReport,
+    startup_recovery_report: StartupRecoveryReport,
 }
 
 impl LocalDataStore {
     pub(crate) fn open(config: StoreConfig) -> LocalDataResult<Self> {
-        let (connection, migration_report) = migration::open_migrated_database(&config)?;
+        let (mut connection, migration_report) = migration::open_migrated_database(&config)?;
+        let startup_recovery_report = sync_state::recover_startup(&mut connection)?;
         Ok(Self {
             connection: Mutex::new(connection),
             database_path: config.database_path,
@@ -54,6 +58,7 @@ impl LocalDataStore {
             workspace_id: config.workspace_id,
             local_principal_id: config.local_principal_id,
             migration_report,
+            startup_recovery_report,
         })
     }
 
@@ -67,6 +72,10 @@ impl LocalDataStore {
 
     pub(crate) fn migration_report(&self) -> &MigrationReport {
         &self.migration_report
+    }
+
+    pub(crate) fn startup_recovery_report(&self) -> StartupRecoveryReport {
+        self.startup_recovery_report
     }
 
     pub(crate) fn verify_integrity(&self) -> LocalDataResult<()> {

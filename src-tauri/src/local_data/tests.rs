@@ -135,6 +135,13 @@ fn new_database_is_migrated_and_bound_to_workspace_identity() {
         "settings",
         "entity_history",
         "pending_mutations",
+        "sync_devices",
+        "sync_runtime_state",
+        "sync_operation_dependencies",
+        "sync_operation_results",
+        "sync_conflict_baselines",
+        "sync_snapshot_rebuilds",
+        "sync_snapshot_entries",
     ] {
         assert!(
             tables.iter().any(|table| table == required),
@@ -216,6 +223,336 @@ fn interrupted_swap_recovers_rollback_before_migrating() {
             )
             .unwrap(),
         1
+    );
+}
+
+#[test]
+fn version_one_sync_migration_preserves_queue_and_rollback_downgrade() {
+    let directory = tempfile::tempdir().unwrap();
+    let database_path = directory.path().join("workspace.sqlite3");
+    let workspace_id = Uuid::now_v7().to_string();
+    let principal_id = Uuid::now_v7().to_string();
+    let operation_id = Uuid::now_v7().to_string();
+    let connection = Connection::open(&database_path).unwrap();
+    connection
+        .execute_batch(include_str!("../../migrations/0001_local_data.sql"))
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO workspace_meta(
+                singleton, workspace_id, local_principal_id, schema_version, created_at
+             ) VALUES (1, ?1, ?2, 1, 100)",
+            [&workspace_id, &principal_id],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO pending_mutations(
+                operation_id, entity_type, entity_id, mutation_kind, candidate_json, created_at
+             ) VALUES (?1, 'setting', 'appearance', 'update', '{\"theme\":\"dark\"}', 123)",
+            [&operation_id],
+        )
+        .unwrap();
+    drop(connection);
+
+    let store = LocalDataStore::open(StoreConfig {
+        database_path,
+        blob_root: directory.path().join("blobs"),
+        workspace_id,
+        local_principal_id: principal_id,
+    })
+    .unwrap();
+
+    assert_eq!(store.migration_report().from_version, 1);
+    assert_eq!(store.migration_report().to_version, 2);
+    let pending = store.list_pending_mutations(10).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].operation_id, operation_id);
+    assert_eq!(pending[0].queue_state, SyncQueueState::Pending);
+    assert!(pending[0].dependencies.is_empty());
+    assert_eq!(pending[0].attempt_count, 0);
+    assert_eq!(pending[0].updated_at, 123);
+
+    let rollback =
+        Connection::open(store.migration_report().rollback_path.as_ref().unwrap()).unwrap();
+    assert_eq!(
+        rollback
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        rollback
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('pending_mutations')
+                 WHERE name = 'queue_state'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        rollback
+            .query_row("SELECT count(*) FROM pending_mutations", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
+fn cursor_acknowledgement_is_separate_from_pulled_page_staging() {
+    let (_directory, store) = test_store();
+    let account_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    store.register_sync_device(&account_id, &device_id).unwrap();
+    store
+        .stage_pulled_cursor(&account_id, &device_id, "opaque-page-2")
+        .unwrap();
+
+    let staged = store
+        .sync_device_state(&account_id, &device_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(staged.acknowledged_cursor, None);
+    assert_eq!(staged.pulled_cursor.as_deref(), Some("opaque-page-2"));
+
+    assert_eq!(
+        store.commit_pulled_cursor(&account_id, &device_id).unwrap(),
+        "opaque-page-2"
+    );
+    let committed = store
+        .sync_device_state(&account_id, &device_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        committed.acknowledged_cursor.as_deref(),
+        Some("opaque-page-2")
+    );
+    assert_eq!(committed.pulled_cursor, None);
+}
+
+#[test]
+fn queue_binding_persists_ordered_dependencies_and_device_identity() {
+    let (_directory, store) = test_store();
+    let account_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let first = store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Dependency base"),
+        })
+        .unwrap();
+    let second = store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Dependent edit"),
+        })
+        .unwrap();
+    let queued = store.list_pending_mutations(10).unwrap();
+    let first_operation = queued
+        .iter()
+        .find(|operation| operation.entity_id == first.id)
+        .unwrap()
+        .operation_id
+        .clone();
+    let second_operation = queued
+        .iter()
+        .find(|operation| operation.entity_id == second.id)
+        .unwrap()
+        .operation_id
+        .clone();
+    store.register_sync_device(&account_id, &device_id).unwrap();
+    store
+        .bind_pending_mutation(
+            &second_operation,
+            &account_id,
+            &device_id,
+            std::slice::from_ref(&first_operation),
+        )
+        .unwrap();
+
+    let dependent = store
+        .list_pending_mutations(10)
+        .unwrap()
+        .into_iter()
+        .find(|operation| operation.operation_id == second_operation)
+        .unwrap();
+    assert_eq!(dependent.account_id.as_deref(), Some(account_id.as_str()));
+    assert_eq!(dependent.device_id.as_deref(), Some(device_id.as_str()));
+    assert_eq!(dependent.dependencies, vec![first_operation.clone()]);
+    assert_eq!(
+        store
+            .connection()
+            .query_row(
+                "SELECT depends_on_operation_id FROM sync_operation_dependencies
+                 WHERE operation_id = ?1",
+                [&dependent.operation_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        first_operation
+    );
+}
+
+#[test]
+fn startup_recovery_is_atomic_idempotent_and_preserves_unacked_work() {
+    let (directory, store) = test_store();
+    let config = StoreConfig {
+        database_path: store.database_path.clone(),
+        blob_root: store.blob_root.clone(),
+        workspace_id: store.workspace_id().into(),
+        local_principal_id: store.local_principal_id().into(),
+    };
+    let account_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let batch_id = Uuid::now_v7().to_string();
+    let rebuild_id = Uuid::now_v7().to_string();
+    let question = store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Crash-safe pending edit"),
+        })
+        .unwrap();
+    let operation_id = store.list_pending_mutations(10).unwrap()[0]
+        .operation_id
+        .clone();
+    store.register_sync_device(&account_id, &device_id).unwrap();
+    store
+        .bind_pending_mutation(&operation_id, &account_id, &device_id, &[])
+        .unwrap();
+    store
+        .set_sync_runtime_phase(
+            &account_id,
+            &device_id,
+            SyncRuntimePhase::Push,
+            Some(&batch_id),
+        )
+        .unwrap();
+    store
+        .connection()
+        .execute(
+            "UPDATE pending_mutations
+             SET queue_state = 'in_flight', batch_id = ?2, batch_ordinal = 4,
+                 attempt_count = 2, last_attempt_at = 456
+             WHERE operation_id = ?1",
+            rusqlite::params![operation_id, batch_id],
+        )
+        .unwrap();
+    store
+        .connection()
+        .execute(
+            "INSERT INTO sync_snapshot_rebuilds(
+                rebuild_id, account_id, device_id, state, pages_received, created_at, updated_at
+             ) VALUES (?1, ?2, ?3, 'swapping', 3, 100, 200)",
+            rusqlite::params![rebuild_id, account_id, device_id],
+        )
+        .unwrap();
+    drop(store);
+
+    let reopened = LocalDataStore::open(config.clone()).unwrap();
+    assert_eq!(
+        reopened.startup_recovery_report(),
+        StartupRecoveryReport {
+            retryable_operations: 1,
+            reset_runtime_states: 1,
+            retryable_snapshot_rebuilds: 1,
+        }
+    );
+    let pending = reopened.list_pending_mutations(10).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].operation_id, operation_id);
+    assert_eq!(pending[0].entity_id, question.id);
+    assert_eq!(pending[0].queue_state, SyncQueueState::Retrying);
+    assert_eq!(pending[0].attempt_count, 2);
+    assert!(pending[0].next_attempt_at.is_some());
+    assert_eq!(pending[0].batch_id, None);
+    assert_eq!(pending[0].batch_ordinal, 0);
+    let device = reopened
+        .sync_device_state(&account_id, &device_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(device.runtime_phase, SyncRuntimePhase::Idle);
+    assert_eq!(device.active_batch_id, None);
+    assert_eq!(
+        reopened
+            .connection()
+            .query_row(
+                "SELECT state FROM sync_snapshot_rebuilds WHERE rebuild_id = ?1",
+                [&rebuild_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "ready"
+    );
+    drop(reopened);
+
+    let reopened_again = LocalDataStore::open(config).unwrap();
+    assert_eq!(
+        reopened_again.startup_recovery_report(),
+        StartupRecoveryReport::default()
+    );
+    assert_eq!(reopened_again.list_pending_mutations(10).unwrap().len(), 1);
+    drop(reopened_again);
+    drop(directory);
+}
+
+#[test]
+fn stored_operation_response_is_exact_and_survives_queue_settlement() {
+    let (_directory, store) = test_store();
+    store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Replay-safe edit"),
+        })
+        .unwrap();
+    let operation_id = store.list_pending_mutations(10).unwrap()[0]
+        .operation_id
+        .clone();
+    let request_hash = "a".repeat(64);
+    let response = json!({"operationId": operation_id, "status": "applied", "version": 1});
+
+    store
+        .store_sync_operation_response(&operation_id, &request_hash, &response)
+        .unwrap();
+    store
+        .store_sync_operation_response(&operation_id, &request_hash, &response)
+        .unwrap();
+    let pending = store.list_pending_mutations(10).unwrap();
+    assert_eq!(pending[0].queue_state, SyncQueueState::Settled);
+    assert_eq!(pending[0].stored_response.as_ref(), Some(&response));
+    assert_eq!(
+        store
+            .sync_operation_response(&operation_id, &request_hash)
+            .unwrap(),
+        Some(response.clone())
+    );
+    assert!(matches!(
+        store.store_sync_operation_response(
+            &operation_id,
+            &"b".repeat(64),
+            &json!({"status": "conflict"}),
+        ),
+        Err(LocalDataError::Validation(_))
+    ));
+    store
+        .connection()
+        .execute(
+            "DELETE FROM pending_mutations WHERE operation_id = ?1",
+            [&operation_id],
+        )
+        .unwrap();
+    assert_eq!(
+        store
+            .sync_operation_response(&operation_id, &request_hash)
+            .unwrap(),
+        Some(response)
     );
 }
 
