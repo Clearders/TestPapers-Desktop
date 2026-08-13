@@ -1,0 +1,37 @@
+{
+  "modelVersion": "sync-fault-model/v1",
+  "generator": {
+    "algorithm": "xorshift64star",
+    "baseSeed": 1000003,
+    "stepsPerSequence": 24,
+    "devices": 3,
+    "entities": 3
+  },
+  "execution": {
+    "environmentVariable": "SYNC_FAULT_SEQUENCES",
+    "pullRequestSequences": 1000,
+    "nightlySequences": 10000
+  },
+  "operations": [
+    "update",
+    "delete",
+    "restore"
+  ],
+  "faults": [
+    "none",
+    "offline",
+    "timeoutAfterCommit",
+    "duplicateDelivery",
+    "outOfOrderDelivery",
+    "clientCrash",
+    "diskWriteFailure",
+    "cursorExpired"
+  ],
+  "invariants": [
+    "exactIdempotentReplay",
+    "eventualConvergence",
+    "explicitStaleConflict",
+    "noSilentOverwrite",
+    "noSilentResurrection"
+  ]
+}

@@ -1,0 +1,32 @@
+name: Sync Fault Model Nightly
+
+on:
+  schedule:
+    - cron: "43 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  randomized-sync-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal
+          rustup default 1.94.1
+
+      - name: Run 10,000 deterministic fault sequences
+        env:
+          SYNC_FAULT_SEQUENCES: "10000"
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked --test sync_fault_model
