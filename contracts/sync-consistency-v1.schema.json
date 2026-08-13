@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://testpapers.dev/contracts/sync-consistency-v1.schema.json",
+  "title": "TestPapers cross-runtime Sync consistency scenarios",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "dslVersion", "scenarios"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "dslVersion": { "const": "sync-consistency/v1" },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "entityType": {
+      "enum": ["question", "paper", "draft", "attachment", "comment", "favorite", "setting"]
+    },
+    "kind": {
+      "enum": ["create", "update", "delete", "restore", "attach", "detach"]
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationId", "device", "entityType", "entityId", "kind"],
+      "properties": {
+        "operationId": { "type": "string", "minLength": 1 },
+        "device": { "type": "string", "minLength": 1 },
+        "entityType": { "$ref": "#/$defs/entityType" },
+        "entityId": { "type": "string", "minLength": 1 },
+        "kind": { "$ref": "#/$defs/kind" },
+        "baseVersion": { "type": "integer", "minimum": 1 },
+        "payload": { "type": ["object", "null"] }
+      }
+    },
+    "operationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationId", "status"],
+      "properties": {
+        "operationId": { "type": "string" },
+        "status": { "enum": ["applied", "conflict"] },
+        "acceptedVersion": { "type": "integer", "minimum": 1 },
+        "cloudVersion": { "type": "integer", "minimum": 1 },
+        "reason": { "enum": ["divergentContent", "tombstoneDivergence"] }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entityType", "entityId", "version", "tombstone", "payload"],
+      "properties": {
+        "entityType": { "$ref": "#/$defs/entityType" },
+        "entityId": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "tombstone": { "type": "boolean" },
+        "payload": { "type": ["object", "null"] }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationId", "device", "entityType", "entityId", "kind", "baseVersion", "cloudVersion", "reason"],
+      "properties": {
+        "operationId": { "type": "string" },
+        "device": { "type": "string" },
+        "entityType": { "$ref": "#/$defs/entityType" },
+        "entityId": { "type": "string" },
+        "kind": { "$ref": "#/$defs/kind" },
+        "baseVersion": { "type": "integer", "minimum": 1 },
+        "cloudVersion": { "type": "integer", "minimum": 1 },
+        "reason": { "enum": ["divergentContent", "tombstoneDivergence"] }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entities", "conflicts", "operationResults"],
+      "properties": {
+        "entities": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
+        "conflicts": { "type": "array", "items": { "$ref": "#/$defs/conflict" } },
+        "operationResults": { "type": "array", "items": { "$ref": "#/$defs/operationResult" } }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "seed", "devices", "operations", "expected"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "seed": { "type": "integer", "minimum": 0 },
+        "devices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/operation" }
+        },
+        "expected": { "$ref": "#/$defs/expected" }
+      }
+    }
+  }
+}

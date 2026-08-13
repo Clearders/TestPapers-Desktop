@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "dslVersion": "sync-consistency/v1",
+  "sourceIssue": "CLE-96",
+  "schemaSha256": "e84968677a027729169b2067605d24ebf382684e9d3add9b8c176063106ef674",
+  "fixturesSha256": "43b2435dd912366ebd427e69a13b0ae74542a851aff8d2689d1b4cf45542737b",
+  "semanticFingerprint": "d10fb7d88dc56674fcdc89e222760518ee5349191ff3d346a76cb9144e8f5761"
+}
