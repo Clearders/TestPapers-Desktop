@@ -58,4 +58,31 @@ fn sync_v1_contract_and_canonical_vectors_are_consumable_from_rust() {
         assert_eq!(canonical, test_case["canonical"].as_str().unwrap());
         assert_eq!(sha256(canonical.as_bytes()), test_case["sha256"]);
     }
+
+    assert_eq!(
+        schema["$defs"]["conflictRecord"]["properties"]["origin"]["const"],
+        "personalSync"
+    );
+    assert_eq!(
+        schema["$defs"]["resolutionAction"]["enum"]
+            .as_array()
+            .expect("resolution actions")
+            .len(),
+        6
+    );
+    for conflict in fixtures["conflictCases"]
+        .as_array()
+        .expect("conflict fixtures")
+    {
+        assert!(conflict.get("localKind").is_some());
+        assert!(conflict.get("cloudKind").is_some());
+        assert!(conflict.get("reason").is_some());
+    }
+    for resolution in fixtures["resolutionCases"]
+        .as_array()
+        .expect("resolution fixtures")
+    {
+        assert_eq!(resolution["createsAcceptedVersion"], true);
+        assert_eq!(resolution["appendOnly"], true);
+    }
 }

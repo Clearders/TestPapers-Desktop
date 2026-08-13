@@ -100,6 +100,100 @@
       "error": "SYNC_DEPENDENCY_FAILED"
     }
   ],
+  "conflictCases": [
+    {
+      "name": "concurrent-create-has-explicit-empty-baseline",
+      "localKind": "create",
+      "cloudKind": "create",
+      "sameHash": false,
+      "reason": "concurrentCreate",
+      "base": null,
+      "origin": "personalSync"
+    },
+    {
+      "name": "update-update-preserves-three-way-snapshots",
+      "localKind": "update",
+      "cloudKind": "update",
+      "sameHash": false,
+      "reason": "divergentContent",
+      "requiredSnapshots": [
+        "base",
+        "local",
+        "cloud"
+      ]
+    },
+    {
+      "name": "update-delete-never-resurrects-silently",
+      "localKind": "update",
+      "cloudKind": "delete",
+      "sameHash": false,
+      "reason": "tombstoneDivergence"
+    },
+    {
+      "name": "delete-restore-needs-explicit-resolution",
+      "localKind": "delete",
+      "cloudKind": "restore",
+      "sameHash": false,
+      "reason": "tombstoneDivergence"
+    },
+    {
+      "name": "restore-update-preserves-restored-candidate",
+      "localKind": "restore",
+      "cloudKind": "update",
+      "sameHash": false,
+      "reason": "restoreDivergence"
+    },
+    {
+      "name": "rename-update-is-not-last-write-wins",
+      "localKind": "rename",
+      "cloudKind": "update",
+      "sameHash": false,
+      "reason": "renameDivergence"
+    },
+    {
+      "name": "identical-content-is-a-noop",
+      "localKind": "update",
+      "cloudKind": "update",
+      "sameHash": true,
+      "reason": null
+    }
+  ],
+  "resolutionCases": [
+    {
+      "action": "keepLocal",
+      "createsAcceptedVersion": true,
+      "appendOnly": true
+    },
+    {
+      "action": "useCloud",
+      "createsAcceptedVersion": true,
+      "appendOnly": true
+    },
+    {
+      "action": "saveCopy",
+      "requires": "newEntityId",
+      "createsAcceptedVersion": true,
+      "appendOnly": true
+    },
+    {
+      "action": "manualMerge",
+      "createsAcceptedVersion": true,
+      "appendOnly": true
+    },
+    {
+      "action": "restoreVersion",
+      "createsAcceptedVersion": true,
+      "rewritesHistory": false,
+      "appendOnly": true
+    },
+    {
+      "action": "undo",
+      "requires": "undoesResolutionId",
+      "createsAcceptedVersion": true,
+      "rewritesHistory": false,
+      "appendOnly": true
+    }
+  ],
   "errorCases": [
     {
       "code": "SYNC_PROTOCOL_UNSUPPORTED",
@@ -170,6 +264,11 @@
       "code": "SYNC_UPLOAD_CHUNK_MISMATCH",
       "http": 409,
       "retry": "correctChunk"
+    },
+    {
+      "code": "SYNC_UPLOAD_INCOMPLETE",
+      "http": 409,
+      "retry": "uploadMissingChunks"
     },
     {
       "code": "SYNC_ATTACHMENT_HASH_MISMATCH",
