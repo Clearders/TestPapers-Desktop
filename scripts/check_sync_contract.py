@@ -44,6 +44,12 @@ def main() -> int:
     assert len(set(schema["$defs"]["entityType"]["enum"])) == 7
     stale_delete = next(case for case in fixtures["lifecycleCases"] if case["name"] == "stale-update-after-delete")
     assert stale_delete["thirdStatus"] == "conflict"
+    conflict_reasons = set(schema["$defs"]["conflictReason"]["enum"])
+    assert {case["reason"] for case in fixtures["conflictCases"] if case["reason"]} == conflict_reasons
+    assert all(case.get("origin", "personalSync") == "personalSync" for case in fixtures["conflictCases"])
+    resolution_actions = schema["$defs"]["resolutionAction"]["enum"]
+    assert [case["action"] for case in fixtures["resolutionCases"]] == resolution_actions
+    assert all(case["createsAcceptedVersion"] and case["appendOnly"] for case in fixtures["resolutionCases"])
     print(f"Sync v1 contract verified ({fingerprint}).")
     return 0
 

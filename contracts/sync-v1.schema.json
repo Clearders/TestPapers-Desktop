@@ -381,13 +381,161 @@
         }
       }
     },
+    "conflictEntityType": {
+      "enum": [
+        "question",
+        "paper",
+        "draft"
+      ]
+    },
+    "conflictReason": {
+      "enum": [
+        "concurrentCreate",
+        "divergentContent",
+        "tombstoneDivergence",
+        "restoreDivergence",
+        "renameDivergence"
+      ]
+    },
+    "conflictSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "version",
+        "contentHash",
+        "mutationKind",
+        "tombstone",
+        "payload",
+        "deviceId",
+        "modifiedAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854776000
+        },
+        "contentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "mutationKind": {
+          "$ref": "#/$defs/mutationKind"
+        },
+        "tombstone": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "conflictRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "conflictId",
+        "origin",
+        "entityType",
+        "entityId",
+        "reason",
+        "base",
+        "local",
+        "cloud",
+        "detectedAt"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "conflictId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "origin": {
+          "const": "personalSync",
+          "description": "Collaborative WebSocket revisions are intentionally outside this conflict model."
+        },
+        "entityType": {
+          "$ref": "#/$defs/conflictEntityType"
+        },
+        "entityId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "reason": {
+          "$ref": "#/$defs/conflictReason"
+        },
+        "base": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/conflictSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "local": {
+          "$ref": "#/$defs/conflictSnapshot"
+        },
+        "cloud": {
+          "$ref": "#/$defs/conflictSnapshot"
+        },
+        "detectedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": "concurrentCreate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "base": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "base": {
+                "$ref": "#/$defs/conflictSnapshot"
+              }
+            }
+          }
+        }
+      ]
+    },
     "resolutionAction": {
       "enum": [
         "keepLocal",
         "useCloud",
         "saveCopy",
         "manualMerge",
-        "restoreVersion"
+        "restoreVersion",
+        "undo"
       ]
     },
     "conflictResolutionRequest": {
@@ -426,8 +574,130 @@
         },
         "newEntityId": {
           "$ref": "#/$defs/stableId"
+        },
+        "undoesResolutionId": {
+          "$ref": "#/$defs/stableId"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "saveCopy"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "newEntityId"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "undo"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "undoesResolutionId"
+            ]
+          }
+        }
+      ]
+    },
+    "conflictResolutionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "resolutionId",
+        "conflictId",
+        "operationId",
+        "action",
+        "actorDeviceId",
+        "acceptedVersion",
+        "acceptedContentHash",
+        "result",
+        "resolvedAt"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "resolutionId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "conflictId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "operationId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "action": {
+          "$ref": "#/$defs/resolutionAction"
+        },
+        "actorDeviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "acceptedVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854776000
+        },
+        "acceptedContentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "result": {
+          "$ref": "#/$defs/conflictSnapshot"
+        },
+        "newEntityId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "undoesResolutionId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "saveCopy"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "newEntityId"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "undo"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "undoesResolutionId"
+            ]
+          }
+        }
+      ]
     },
     "errorCode": {
       "enum": [
@@ -445,6 +715,7 @@
         "SYNC_ENTITY_SCHEMA_UNSUPPORTED",
         "SYNC_UPLOAD_EXPIRED",
         "SYNC_UPLOAD_CHUNK_MISMATCH",
+        "SYNC_UPLOAD_INCOMPLETE",
         "SYNC_ATTACHMENT_HASH_MISMATCH"
       ]
     },
