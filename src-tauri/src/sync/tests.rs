@@ -181,6 +181,13 @@ fn worker_delivers_a_persisted_conflict_resolution_before_normal_push() {
             }),
         )
         .unwrap();
+    store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Unrelated queued mutation"),
+        })
+        .unwrap();
     let response = json!({
         "protocolVersion": 1,
         "resolutionId": Uuid::now_v7().to_string(),
@@ -216,8 +223,9 @@ fn worker_delivers_a_persisted_conflict_resolution_before_normal_push() {
 
     let report = worker.run_once().unwrap();
 
-    assert_eq!(report.pushed_operations, 1);
+    assert_eq!(report.pushed_operations, 2);
     assert_eq!(transport.resolved_conflicts.lock().unwrap().len(), 1);
+    assert_eq!(transport.pushed_batches.lock().unwrap().len(), 1);
     let recovered = store.list_sync_conflict_recovery(&account_id).unwrap();
     assert_eq!(recovered[0].state, "resolved");
     assert_eq!(recovered[0].resolutions.len(), 1);

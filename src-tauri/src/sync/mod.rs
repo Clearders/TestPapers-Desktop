@@ -355,7 +355,9 @@ impl<T: SyncTransport> SyncWorker<T> {
                     )?;
                     self.store
                         .settle_sync_batch(&self.account_id, &batch.batch_id, &outcomes)?;
-                    report.pushed_operations = u32::try_from(outcomes.len()).unwrap_or(u32::MAX);
+                    report.pushed_operations = report
+                        .pushed_operations
+                        .saturating_add(u32::try_from(outcomes.len()).unwrap_or(u32::MAX));
                 }
                 Err(error) => {
                     self.store.retry_sync_batch(&batch.batch_id, &error.code)?;
