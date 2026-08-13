@@ -27,6 +27,7 @@ tauri-plugin-dialog = "=2.7.2"
 tauri-plugin-single-instance = "=2.4.3"
 testpapers-cloud-api = { path = "../contracts/cloud-api-rust", default-features = false, features = ["rustls"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }
+url = "2.5"
 uuid = { version = "=1.24.0", features = ["serde", "v7"] }
 
 [dev-dependencies]

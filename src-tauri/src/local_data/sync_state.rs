@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,28 @@ pub(crate) struct SyncDeviceState {
     pub(crate) authentication_state: String,
     pub(crate) runtime_phase: SyncRuntimePhase,
     pub(crate) active_batch_id: Option<String>,
+    pub(crate) paused: bool,
+    pub(crate) last_completed_at: Option<i64>,
+    pub(crate) last_error_code: Option<String>,
     pub(crate) updated_at: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SyncEntityDeliveryState {
+    pub(crate) entity_type: String,
+    pub(crate) entity_id: String,
+    pub(crate) status: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SyncControlData {
+    pub(crate) device: SyncDeviceState,
+    pub(crate) pending_count: u32,
+    pub(crate) retrying_count: u32,
+    pub(crate) conflict_count: u32,
+    pub(crate) failed_count: u32,
+    pub(crate) last_error_code: Option<String>,
+    pub(crate) entities: Vec<SyncEntityDeliveryState>,
 }
 
 impl LocalDataStore {
@@ -109,7 +130,8 @@ impl LocalDataStore {
         self.connection()
             .query_row(
                 "SELECT d.account_id, d.device_id, d.acknowledged_cursor, d.pulled_cursor,
-                        d.authentication_state, r.phase, r.active_batch_id,
+                        d.authentication_state, r.phase, r.active_batch_id, r.paused,
+                        r.last_completed_at, r.last_error_code,
                         max(d.updated_at, r.updated_at)
                  FROM sync_devices d
                  JOIN sync_runtime_state r
@@ -127,12 +149,110 @@ impl LocalDataStore {
                         runtime_phase: SyncRuntimePhase::from_str(&phase)
                             .map_err(sql_decode_error)?,
                         active_batch_id: row.get(6)?,
-                        updated_at: row.get(7)?,
+                        paused: row.get(7)?,
+                        last_completed_at: row.get(8)?,
+                        last_error_code: row.get(9)?,
+                        updated_at: row.get(10)?,
                     })
                 },
             )
             .optional()
             .map_err(Into::into)
+    }
+
+    pub(crate) fn sync_control_data(
+        &self,
+        account_id: &str,
+        device_id: &str,
+    ) -> LocalDataResult<Option<SyncControlData>> {
+        let Some(device) = self.sync_device_state(account_id, device_id)? else {
+            return Ok(None);
+        };
+        let connection = self.connection();
+        let (pending, retrying, conflict, failed): (i64, i64, i64, i64) = connection.query_row(
+            "SELECT
+                coalesce(sum(CASE WHEN queue_state = 'pending' THEN 1 ELSE 0 END), 0),
+                coalesce(sum(CASE WHEN queue_state = 'retrying' THEN 1 ELSE 0 END), 0),
+                coalesce(sum(CASE WHEN queue_state = 'conflict' THEN 1 ELSE 0 END), 0),
+                coalesce(sum(CASE WHEN queue_state = 'failed' THEN 1 ELSE 0 END), 0)
+             FROM pending_mutations
+             WHERE account_id IS NULL OR (account_id = ?1 AND device_id = ?2)",
+            params![account_id, device_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )?;
+        let mut statement = connection.prepare(
+            "SELECT entity_type, entity_id, queue_state
+             FROM pending_mutations
+             WHERE queue_state <> 'settled'
+               AND (account_id IS NULL OR (account_id = ?1 AND device_id = ?2))
+             ORDER BY created_at DESC, operation_id DESC",
+        )?;
+        let mut rows = statement.query(params![account_id, device_id])?;
+        let mut entities = BTreeMap::new();
+        while let Some(row) = rows.next()? {
+            let entity_type: String = row.get(0)?;
+            let entity_id: String = row.get(1)?;
+            let queue_state: String = row.get(2)?;
+            entities.entry((entity_type, entity_id)).or_insert_with(|| {
+                match queue_state.as_str() {
+                    "in_flight" => "syncing".to_owned(),
+                    state => state.to_owned(),
+                }
+            });
+        }
+        let last_error_code = connection
+            .query_row(
+                "SELECT last_error_code FROM pending_mutations
+                 WHERE last_error_code IS NOT NULL
+                   AND (account_id IS NULL OR (account_id = ?1 AND device_id = ?2))
+                 ORDER BY updated_at DESC, operation_id DESC LIMIT 1",
+                params![account_id, device_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(Some(SyncControlData {
+            device,
+            pending_count: u32::try_from(pending).unwrap_or(u32::MAX),
+            retrying_count: u32::try_from(retrying).unwrap_or(u32::MAX),
+            conflict_count: u32::try_from(conflict).unwrap_or(u32::MAX),
+            failed_count: u32::try_from(failed).unwrap_or(u32::MAX),
+            last_error_code,
+            entities: entities
+                .into_iter()
+                .map(
+                    |((entity_type, entity_id), status)| SyncEntityDeliveryState {
+                        entity_type,
+                        entity_id,
+                        status,
+                    },
+                )
+                .collect(),
+        }))
+    }
+
+    pub(crate) fn set_sync_paused(
+        &self,
+        account_id: &str,
+        device_id: &str,
+        paused: bool,
+    ) -> LocalDataResult<()> {
+        validate_sync_identity(account_id, device_id)?;
+        let changed = self.connection().execute(
+            "UPDATE sync_runtime_state SET paused = ?3, updated_at = ?4
+             WHERE account_id = ?1 AND device_id = ?2",
+            params![account_id, device_id, paused, now_micros()],
+        )?;
+        require_registered_device(changed)
+    }
+
+    pub(crate) fn retry_sync_now(&self, account_id: &str, device_id: &str) -> LocalDataResult<u32> {
+        validate_sync_identity(account_id, device_id)?;
+        let changed = self.connection().execute(
+            "UPDATE pending_mutations SET next_attempt_at = ?3, updated_at = ?3
+             WHERE account_id = ?1 AND device_id = ?2 AND queue_state = 'retrying'",
+            params![account_id, device_id, now_micros()],
+        )?;
+        Ok(u32::try_from(changed).unwrap_or(u32::MAX))
     }
 
     /// Persists the cursor returned with a pulled page without advancing the acknowledged cursor.
@@ -377,20 +497,20 @@ pub(super) fn recover_startup(
     let retryable_operations = transaction.execute(
         "UPDATE pending_mutations
          SET queue_state = 'retrying', next_attempt_at = ?1,
-             last_error_code = 'desktop_restart', updated_at = ?1
+             last_error_code = 'SYNC_DESKTOP_RESTART', updated_at = ?1
          WHERE queue_state = 'in_flight'",
         [now],
     )?;
     let reset_runtime_states = transaction.execute(
         "UPDATE sync_runtime_state
          SET phase = 'idle', active_batch_id = NULL, phase_started_at = NULL,
-             last_error_code = 'desktop_restart', updated_at = ?1
+             last_error_code = 'SYNC_DESKTOP_RESTART', updated_at = ?1
          WHERE phase <> 'idle'",
         [now],
     )?;
     let retryable_snapshot_rebuilds = transaction.execute(
         "UPDATE sync_snapshot_rebuilds
-         SET state = 'ready', last_error_code = 'desktop_restart', updated_at = ?1
+         SET state = 'ready', last_error_code = 'SYNC_DESKTOP_RESTART', updated_at = ?1
          WHERE state IN ('applying', 'swapping')",
         [now],
     )?;

@@ -2,8 +2,8 @@
 
 CLE-89 implements the reusable Desktop transport and background worker for Cloud API `1.2.0`,
 Sync protocol `v1`. Construction is explicit: Desktop bootstrap never starts network traffic, and
-CLE-97 owns the shell controls that provide an account, device, base URL, and short-lived Bearer
-token.
+CLE-97 owns the shell controls and the platform-neutral status/event boundary. The native
+authentication component provides the account, device, base URL, and short-lived Bearer token.
 
 ## Durable cycle
 

@@ -60,6 +60,7 @@ DESKTOP_APP_FILES = (
     "src/components/LocalWorkspace.vue",
     "src/infrastructure/tauri/localEngineBridge.ts",
     "src/infrastructure/tauri/shellBridge.ts",
+    "src/infrastructure/tauri/syncBridge.ts",
     "src/types/localEngine.ts",
     "src/types/shell.ts",
     "contracts/domain-model.lock.json",
@@ -136,7 +137,15 @@ DESKTOP_LOCAL_ENGINE_COMMANDS = {
     "select_workspace_restore",
     "update_question",
 }
-DESKTOP_COMMANDS = DESKTOP_SHELL_COMMANDS | DESKTOP_LOCAL_ENGINE_COMMANDS
+DESKTOP_SYNC_COMMANDS = {
+    "configure_sync_session",
+    "get_sync_status",
+    "pause_sync",
+    "resume_sync",
+    "retry_sync",
+    "sync_now",
+}
+DESKTOP_COMMANDS = DESKTOP_SHELL_COMMANDS | DESKTOP_LOCAL_ENGINE_COMMANDS | DESKTOP_SYNC_COMMANDS
 DESKTOP_EVENT_PERMISSIONS = {"core:event:allow-listen", "core:event:allow-unlisten"}
 DESKTOP_FORBIDDEN_NPM_DEPENDENCIES = {
     "nuxt",
@@ -277,6 +286,7 @@ def validate_desktop_shell(root: Path, errors: list[str]) -> None:
     bridge_paths = {
         (root / "src/infrastructure/tauri/shellBridge.ts").resolve(),
         (root / "src/infrastructure/tauri/localEngineBridge.ts").resolve(),
+        (root / "src/infrastructure/tauri/syncBridge.ts").resolve(),
     }
     for path in (root / "src").rglob("*"):
         if path.is_file() and path.suffix in {".ts", ".vue"} and path.resolve() not in bridge_paths:

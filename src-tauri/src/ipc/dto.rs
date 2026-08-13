@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     application::{EngineSnapshot, ShellSnapshot},
@@ -7,6 +7,40 @@ use crate::{
         ThemePreference, ENGINE_SCHEMA_VERSION, SHELL_SCHEMA_VERSION,
     },
 };
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct SyncSessionInput {
+    pub(crate) base_url: String,
+    pub(crate) account_id: String,
+    pub(crate) device_id: String,
+    pub(crate) access_token: String,
+}
+
+impl SyncSessionInput {
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        let url = url::Url::parse(&self.base_url)
+            .map_err(|_| "The Sync Cloud URL is invalid".to_owned())?;
+        let local =
+            url.scheme() == "http" && matches!(url.host_str(), Some("127.0.0.1" | "localhost"));
+        if self.base_url.len() > 2048
+            || (url.scheme() != "https" && !local)
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.fragment().is_some()
+        {
+            return Err("Sync requires an HTTPS Cloud URL (or an explicit localhost URL)".into());
+        }
+        if self.access_token.is_empty()
+            || self.access_token.len() > 16 * 1024
+            || self.access_token.chars().any(char::is_whitespace)
+        {
+            return Err("The native access token is invalid".into());
+        }
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -246,5 +280,27 @@ mod tests {
         assert_eq!(dialog["selectionCount"], 1);
         assert_eq!(dialog["displayNames"][0], "paper.docx");
         assert!(dialog.get("path").is_none());
+    }
+
+    #[test]
+    fn sync_session_input_accepts_secure_endpoints_without_serializing_secrets() {
+        let input: SyncSessionInput = serde_json::from_value(serde_json::json!({
+            "baseUrl": "https://api.testpapers.dev",
+            "accountId": "018f8f2a-7c20-7abc-8def-1234567890ab",
+            "deviceId": "018f8f2a-7c20-7abc-8def-1234567890ac",
+            "accessToken": "header.payload.signature"
+        }))
+        .unwrap();
+        assert!(input.validate().is_ok());
+        assert!(
+            serde_json::from_value::<SyncSessionInput>(serde_json::json!({
+                "baseUrl": "http://cloud.example.test",
+                "accountId": "018f8f2a-7c20-7abc-8def-1234567890ab",
+                "deviceId": "018f8f2a-7c20-7abc-8def-1234567890ac",
+                "accessToken": "secret",
+                "debugToken": "must-be-rejected"
+            }))
+            .is_err()
+        );
     }
 }

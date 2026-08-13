@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://testpapers.dev/contracts/sync-client-state-v1.schema.json",
+  "title": "TestPapers platform-neutral Sync client state v1",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/statusSnapshot" },
+    { "$ref": "#/$defs/statusChangedEvent" }
+  ],
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": ["synced", "pending", "syncing", "offline", "retrying", "conflict", "authRequired", "failed"]
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["idle", "pull", "apply", "ack", "push", "settle"]
+    },
+    "recommendedAction": {
+      "type": "string",
+      "enum": ["none", "wait", "resume", "syncNow", "retry", "signIn", "resolveConflict", "reviewFailure"]
+    },
+    "entityStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entityType", "entityId", "status"],
+      "properties": {
+        "entityType": { "type": "string", "enum": ["question", "paper", "draft", "attachment", "comment", "favorite", "setting"] },
+        "entityId": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/status" }
+      }
+    },
+    "statusSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "protocolVersion", "accountId", "deviceId", "status", "paused", "phase",
+        "pendingCount", "retryingCount", "conflictCount", "failedCount", "lastCompletedAt",
+        "lastErrorCode", "recommendedAction", "canPause", "canResume", "canSyncNow", "canRetry", "entities"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "protocolVersion": { "const": 1 },
+        "accountId": { "type": ["string", "null"], "format": "uuid" },
+        "deviceId": { "type": ["string", "null"], "format": "uuid" },
+        "status": { "$ref": "#/$defs/status" },
+        "paused": { "type": "boolean" },
+        "phase": { "$ref": "#/$defs/phase" },
+        "pendingCount": { "type": "integer", "minimum": 0 },
+        "retryingCount": { "type": "integer", "minimum": 0 },
+        "conflictCount": { "type": "integer", "minimum": 0 },
+        "failedCount": { "type": "integer", "minimum": 0 },
+        "lastCompletedAt": { "type": ["integer", "null"], "minimum": 0 },
+        "lastErrorCode": { "type": ["string", "null"], "pattern": "^[A-Z0-9_]+$" },
+        "recommendedAction": { "$ref": "#/$defs/recommendedAction" },
+        "canPause": { "type": "boolean" },
+        "canResume": { "type": "boolean" },
+        "canSyncNow": { "type": "boolean" },
+        "canRetry": { "type": "boolean" },
+        "entities": { "type": "array", "items": { "$ref": "#/$defs/entityStatus" } }
+      }
+    },
+    "statusChangedEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "type", "occurredAt", "state"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "type": { "const": "sync.statusChanged" },
+        "occurredAt": { "type": "integer", "minimum": 0 },
+        "state": { "$ref": "#/$defs/statusSnapshot" }
+      }
+    }
+  }
+}

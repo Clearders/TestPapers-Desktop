@@ -2,6 +2,12 @@ fn main() {
     const COMMANDS: &[&str] = &[
         "get_engine_context",
         "retry_engine_start",
+        "get_sync_status",
+        "pause_sync",
+        "resume_sync",
+        "sync_now",
+        "retry_sync",
+        "configure_sync_session",
         "get_shell_context",
         "frontend_ready",
         "set_theme_preference",
