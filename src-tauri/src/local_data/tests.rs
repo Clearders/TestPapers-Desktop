@@ -617,12 +617,16 @@ fn conflict_resolution_survives_restart_and_commits_exactly_once() {
         "newEntityId": null,
         "undoesResolutionId": null,
     });
+    assert!(matches!(
+        store.stage_conflict_resolution(&Uuid::now_v7().to_string(), &conflict_id, &request),
+        Err(LocalDataError::NotFound { .. })
+    ));
     let staged = store
-        .stage_conflict_resolution(&conflict_id, &request)
+        .stage_conflict_resolution(&account_id, &conflict_id, &request)
         .unwrap();
     assert_eq!(
         store
-            .stage_conflict_resolution(&conflict_id, &request)
+            .stage_conflict_resolution(&account_id, &conflict_id, &request)
             .unwrap(),
         staged
     );
@@ -630,6 +634,11 @@ fn conflict_resolution_survives_restart_and_commits_exactly_once() {
         store.prepare_next_conflict_resolution().unwrap(),
         Some(staged.clone())
     );
+    let staged_recovery = store.list_sync_conflict_recovery(&account_id).unwrap();
+    assert_eq!(staged_recovery.len(), 1);
+    assert_eq!(staged_recovery[0].conflict_id, conflict_id);
+    assert_eq!(staged_recovery[0].state, "resolving");
+    assert!(staged_recovery[0].resolutions.is_empty());
     assert_eq!(
         store
             .connection()
@@ -710,6 +719,10 @@ fn conflict_resolution_survives_restart_and_commits_exactly_once() {
         ),
         ("settled", "resolved", "accepted")
     );
+    let accepted_recovery = reopened.list_sync_conflict_recovery(&account_id).unwrap();
+    assert_eq!(accepted_recovery.len(), 1);
+    assert_eq!(accepted_recovery[0].state, "resolved");
+    assert_eq!(accepted_recovery[0].resolutions, vec![response]);
     drop(reopened);
     drop(directory);
 }

@@ -41,6 +41,7 @@
         <strong>Startup notice</strong>
         <ul><li v-for="warning in context.warnings" :key="warning">{{ warning }}</li></ul>
       </div>
+      <ConflictRecoveryPanel v-if="syncState?.accountId" :conflict-count="syncState.conflictCount" />
       <LocalWorkspace :sync-state="syncState" @retry-sync="retrySync" />
     </main>
 
@@ -96,6 +97,7 @@
 import { createDesktopShell } from './application/useDesktopShell'
 import { createSyncControl } from './application/useSyncControl'
 import AppIcon from './components/AppIcon.vue'
+import ConflictRecoveryPanel from './components/ConflictRecoveryPanel.vue'
 import LocalWorkspace from './components/LocalWorkspace.vue'
 import SyncStatusControl from './components/SyncStatusControl.vue'
 import type { CloseBehavior, ThemePreference } from './types/shell'

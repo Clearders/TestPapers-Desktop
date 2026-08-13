@@ -107,6 +107,7 @@ Class | Method | HTTP request | Description
 *SyncApi* | [**get_sync_conflict**](docs/SyncApi.md#get_sync_conflict) | **GET** /api/v1/sync/conflicts/{conflict_id} | Get Sync Conflict
 *SyncApi* | [**get_sync_snapshot**](docs/SyncApi.md#get_sync_snapshot) | **GET** /api/v1/sync/snapshot | Get Sync Snapshot
 *SyncApi* | [**initiate_sync_attachment_upload**](docs/SyncApi.md#initiate_sync_attachment_upload) | **POST** /api/v1/sync/attachments/uploads | Initiate Sync Attachment Upload
+*SyncApi* | [**list_sync_conflict_resolutions**](docs/SyncApi.md#list_sync_conflict_resolutions) | **GET** /api/v1/sync/conflicts/{conflict_id}/resolutions | List Sync Conflict Resolutions
 *SyncApi* | [**list_sync_entity_versions**](docs/SyncApi.md#list_sync_entity_versions) | **GET** /api/v1/sync/entities/{entity_type}/{entity_id}/versions | List Sync Entity Versions
 *SyncApi* | [**pull_sync_changes**](docs/SyncApi.md#pull_sync_changes) | **GET** /api/v1/sync/pull | Pull Sync Changes
 *SyncApi* | [**push_sync_mutations**](docs/SyncApi.md#push_sync_mutations) | **POST** /api/v1/sync/push | Push Sync Mutations
@@ -190,6 +191,7 @@ Class | Method | HTTP request | Description
  - [EnvelopeListQuestionEntity](docs/EnvelopeListQuestionEntity.md)
  - [EnvelopeListQuestionRevisionEntity](docs/EnvelopeListQuestionRevisionEntity.md)
  - [EnvelopeListStr](docs/EnvelopeListStr.md)
+ - [EnvelopeListSyncConflictResolutionRecord](docs/EnvelopeListSyncConflictResolutionRecord.md)
  - [EnvelopeListSyncEntityVersionRecord](docs/EnvelopeListSyncEntityVersionRecord.md)
  - [EnvelopeListUserEntity](docs/EnvelopeListUserEntity.md)
  - [EnvelopePaginatedResponseQuestionEntity](docs/EnvelopePaginatedResponseQuestionEntity.md)

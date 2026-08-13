@@ -25,6 +25,8 @@ struct MockTransport {
     acknowledgements: Mutex<VecDeque<Result<(), TransportError>>>,
     push_actions: Mutex<VecDeque<PushAction>>,
     pushed_batches: Mutex<Vec<PreparedSyncBatch>>,
+    resolutions: Mutex<VecDeque<Result<Value, TransportError>>>,
+    resolved_conflicts: Mutex<Vec<PreparedConflictResolution>>,
     acknowledged_cursors: Mutex<Vec<String>>,
     pull_gate: Option<(Arc<Barrier>, Arc<Barrier>)>,
 }
@@ -47,6 +49,21 @@ impl MockTransport {
 }
 
 impl SyncTransport for MockTransport {
+    fn resolve_conflict(
+        &self,
+        resolution: &PreparedConflictResolution,
+    ) -> Result<Value, TransportError> {
+        self.resolved_conflicts
+            .lock()
+            .unwrap()
+            .push(resolution.clone());
+        self.resolutions
+            .lock()
+            .unwrap()
+            .pop_front()
+            .unwrap_or_else(|| Err(fatal("UNEXPECTED_CONFLICT_RESOLUTION")))
+    }
+
     fn pull(&self, _cursor: Option<&str>, _page_size: i32) -> Result<PullPage, TransportError> {
         if let Some((entered, release)) = &self.pull_gate {
             entered.wait();
@@ -117,6 +134,101 @@ impl SyncTransport for MockTransport {
                 .collect()),
         }
     }
+}
+
+#[test]
+fn worker_delivers_a_persisted_conflict_resolution_before_normal_push() {
+    let (_directory, store, account_id, device_id) = test_store();
+    let question = store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Local conflict candidate"),
+        })
+        .unwrap();
+    store.register_sync_device(&account_id, &device_id).unwrap();
+    store
+        .apply_remote_page(
+            &account_id,
+            &device_id,
+            &[RemoteSyncChange {
+                sequence: "cloud-2".into(),
+                entity_type: "question".into(),
+                entity_id: question.id,
+                kind: "update".into(),
+                version: 2,
+                content_hash: "c".repeat(64),
+                snapshot: Some(json!({"text": "Cloud candidate"})),
+                updated_at: 200,
+            }],
+            "cursor-2",
+        )
+        .unwrap();
+    let conflict_id = store.list_sync_conflict_recovery(&account_id).unwrap()[0]
+        .conflict_id
+        .clone();
+    let operation_id = Uuid::now_v7().to_string();
+    store
+        .stage_conflict_resolution(
+            &account_id,
+            &conflict_id,
+            &json!({
+                "protocolVersion": 1,
+                "operationId": operation_id,
+                "action": "useCloud",
+                "currentVersion": 2,
+                "currentContentHash": "c".repeat(64)
+            }),
+        )
+        .unwrap();
+    store
+        .create_question(CreateQuestion {
+            owner_id: None,
+            replication_scope: ReplicationScope::CloudSynced,
+            content: content("Unrelated queued mutation"),
+        })
+        .unwrap();
+    let response = json!({
+        "protocolVersion": 1,
+        "resolutionId": Uuid::now_v7().to_string(),
+        "conflictId": conflict_id,
+        "operationId": operation_id,
+        "action": "useCloud",
+        "actorDeviceId": device_id,
+        "acceptedVersion": 2,
+        "acceptedContentHash": "c".repeat(64),
+        "result": {
+            "schemaVersion": 1,
+            "version": 2,
+            "contentHash": "c".repeat(64),
+            "mutationKind": "update",
+            "tombstone": false,
+            "payload": {"text": "Cloud candidate"},
+            "deviceId": "web",
+            "modifiedAt": "2026-08-13T00:00:00Z"
+        },
+        "resolvedAt": "2026-08-13T00:00:00Z"
+    });
+    let transport = Arc::new(MockTransport {
+        resolutions: Mutex::new(VecDeque::from([Ok(response)])),
+        ..Default::default()
+    });
+    let worker = SyncWorker::new(
+        store.clone(),
+        transport.clone(),
+        account_id.clone(),
+        device_id,
+    )
+    .unwrap();
+
+    let report = worker.run_once().unwrap();
+
+    assert_eq!(report.pushed_operations, 2);
+    assert_eq!(transport.resolved_conflicts.lock().unwrap().len(), 1);
+    assert_eq!(transport.pushed_batches.lock().unwrap().len(), 1);
+    let recovered = store.list_sync_conflict_recovery(&account_id).unwrap();
+    assert_eq!(recovered[0].state, "resolved");
+    assert_eq!(recovered[0].resolutions.len(), 1);
 }
 
 fn test_store() -> (TempDir, Arc<LocalDataStore>, String, String) {

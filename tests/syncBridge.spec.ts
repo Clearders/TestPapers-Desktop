@@ -36,4 +36,13 @@ describe('typed Sync control bridge', () => {
     mockIPC(() => ({ status: 'synced' }))
     await expect(tauriSyncBridge.getStatus()).rejects.toThrow('Invalid Sync client state')
   })
+
+  it('maps conflict recovery reads and writes to the native boundary', async () => {
+    const commands = vi.fn((command: string) => command === 'list_sync_conflicts' ? [] : fixtures.states[0])
+    mockIPC(commands)
+    await expect(tauriSyncBridge.listConflicts()).resolves.toEqual([])
+    await expect(tauriSyncBridge.resolveConflict('conflict-1', { action: 'useCloud' })).resolves.toMatchObject({ status: 'synced' })
+    expect(commands).toHaveBeenCalledWith('list_sync_conflicts', {})
+    expect(commands).toHaveBeenCalledWith('resolve_sync_conflict', { conflictId: 'conflict-1', request: { action: 'useCloud' } })
+  })
 })

@@ -30,7 +30,7 @@ pub(crate) use model::{
 };
 pub(crate) use sync_delivery::{
     PreparedConflictResolution, PreparedSyncBatch, PreparedSyncOperation, RemoteEntityBaseline,
-    RemoteSyncChange, SyncOperationOutcome,
+    RemoteSyncChange, SyncConflictRecoveryRecord, SyncOperationOutcome,
 };
 pub(crate) use sync_state::{
     StartupRecoveryReport, SyncControlData, SyncDeviceState, SyncEntityDeliveryState,

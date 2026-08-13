@@ -71,7 +71,98 @@ pub(crate) struct PreparedConflictResolution {
     pub(crate) request: Value,
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SyncConflictRecoveryRecord {
+    pub(crate) conflict_id: String,
+    pub(crate) entity_type: String,
+    pub(crate) entity_id: String,
+    pub(crate) reason: String,
+    pub(crate) base: Option<Value>,
+    pub(crate) local: Value,
+    pub(crate) cloud: Value,
+    pub(crate) state: String,
+    pub(crate) created_at: i64,
+    pub(crate) updated_at: i64,
+    pub(crate) resolutions: Vec<Value>,
+}
+
 impl LocalDataStore {
+    pub(crate) fn list_sync_conflict_recovery(
+        &self,
+        account_id: &str,
+    ) -> LocalDataResult<Vec<SyncConflictRecoveryRecord>> {
+        validate_canonical_uuid(account_id, "accountId")?;
+        let connection = self.connection();
+        let mut statement = connection.prepare(
+            "SELECT conflict_id, entity_type, entity_id, reason,
+                    base_snapshot_json, local_snapshot_json, cloud_snapshot_json,
+                    resolution_state, created_at, updated_at
+             FROM sync_conflict_baselines
+             WHERE account_id = ?1 AND hydration_state = 'complete'
+             ORDER BY CASE resolution_state WHEN 'unresolved' THEN 0 WHEN 'resolving' THEN 1 ELSE 2 END,
+                      updated_at DESC, conflict_id",
+        )?;
+        let rows = statement.query_map([account_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?
+                    .unwrap_or_else(|| "divergentContent".into()),
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, i64>(9)?,
+            ))
+        })?;
+        let mut conflicts = Vec::new();
+        for row in rows {
+            let (
+                conflict_id,
+                entity_type,
+                entity_id,
+                reason,
+                base,
+                local,
+                cloud,
+                state,
+                created_at,
+                updated_at,
+            ) = row?;
+            let mut resolutions_statement = connection.prepare(
+                "SELECT response_json FROM sync_conflict_resolutions
+                 WHERE conflict_id = ?1 AND state = 'accepted' AND response_json IS NOT NULL
+                 ORDER BY created_at, resolution_id",
+            )?;
+            let resolution_rows =
+                resolutions_statement.query_map([&conflict_id], |row| row.get::<_, String>(0))?;
+            let mut resolutions = Vec::new();
+            for response in resolution_rows {
+                resolutions.push(serde_json::from_str(&response?).map_err(sql_json_error)?);
+            }
+            conflicts.push(SyncConflictRecoveryRecord {
+                conflict_id,
+                entity_type,
+                entity_id,
+                reason,
+                base: base
+                    .map(|value| serde_json::from_str(&value))
+                    .transpose()
+                    .map_err(sql_json_error)?,
+                local: serde_json::from_str(&local).map_err(sql_json_error)?,
+                cloud: serde_json::from_str(&cloud).map_err(sql_json_error)?,
+                state,
+                created_at,
+                updated_at,
+                resolutions,
+            });
+        }
+        Ok(conflicts)
+    }
+
     #[cfg(test)]
     pub(crate) fn make_sync_retries_due(&self) -> LocalDataResult<()> {
         self.connection()
@@ -191,9 +282,11 @@ impl LocalDataStore {
     /// Persists a user decision before transport so a crash cannot lose or duplicate it.
     pub(crate) fn stage_conflict_resolution(
         &self,
+        account_id: &str,
         conflict_id: &str,
         request: &Value,
     ) -> LocalDataResult<PreparedConflictResolution> {
+        validate_canonical_uuid(account_id, "accountId")?;
         validate_canonical_uuid(conflict_id, "conflictId")?;
         let request_json = canonical_json(request)?;
         let request_hash = hex_sha256(request_json.as_bytes());
@@ -213,6 +306,20 @@ impl LocalDataStore {
         let now = now_micros();
         let mut connection = self.connection();
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let owns_conflict = transaction
+            .query_row(
+                "SELECT 1 FROM sync_conflict_baselines WHERE conflict_id = ?1 AND account_id = ?2",
+                params![conflict_id, account_id],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some();
+        if !owns_conflict {
+            return Err(LocalDataError::NotFound {
+                entity: "sync conflict",
+                id: conflict_id.into(),
+            });
+        }
         if let Some(existing) = read_resolution_by_operation(&transaction, operation_id)? {
             if existing.request_hash != request_hash || existing.conflict_id != conflict_id {
                 return Err(LocalDataError::Validation(vec![
@@ -225,8 +332,8 @@ impl LocalDataStore {
         let baseline = transaction
             .query_row(
                 "SELECT cloud_version, cloud_content_hash, hydration_state, resolution_state
-                 FROM sync_conflict_baselines WHERE conflict_id = ?1",
-                [conflict_id],
+                 FROM sync_conflict_baselines WHERE conflict_id = ?1 AND account_id = ?2",
+                params![conflict_id, account_id],
                 |row| {
                     Ok((
                         row.get::<_, i64>(0)?,
