@@ -1,0 +1,478 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.testpapers.dev/sync/v1/schema.json",
+  "title": "TestPapers Sync v1",
+  "description": "Language-neutral wire models governed by ADR-0003 and ADR-0004.",
+  "protocolVersion": 1,
+  "type": "object",
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entityType": {
+      "enum": [
+        "question",
+        "paper",
+        "draft",
+        "attachment",
+        "comment",
+        "favorite",
+        "setting"
+      ]
+    },
+    "mutationKind": {
+      "enum": [
+        "create",
+        "update",
+        "delete",
+        "restore",
+        "rename",
+        "attach",
+        "detach"
+      ]
+    },
+    "protocolVersion": {
+      "const": 1
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "entityType",
+        "entityId",
+        "kind",
+        "dependsOn"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "entityType": {
+          "$ref": "#/$defs/entityType"
+        },
+        "entityId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "kind": {
+          "$ref": "#/$defs/mutationKind"
+        },
+        "baseVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854776000
+        },
+        "baseContentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "payload": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stableId"
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "create"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "baseVersion"
+                  ]
+                },
+                {
+                  "required": [
+                    "baseContentHash"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "update",
+                  "delete",
+                  "restore",
+                  "rename",
+                  "attach",
+                  "detach"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "baseVersion",
+              "baseContentHash"
+            ]
+          }
+        }
+      ]
+    },
+    "pushRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "batchId",
+        "deviceId",
+        "mutations"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "batchId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mutations": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        }
+      }
+    },
+    "operationStatus": {
+      "enum": [
+        "applied",
+        "noop",
+        "conflict",
+        "rejected",
+        "dependencyFailed"
+      ]
+    },
+    "operationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "status"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "status": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "entityVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854776000
+        },
+        "contentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "changeCursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "conflictId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "failedDependencyIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stableId"
+          },
+          "uniqueItems": true
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      }
+    },
+    "pushResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "batchId",
+        "results"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "batchId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operationResult"
+          }
+        }
+      }
+    },
+    "changeKind": {
+      "enum": [
+        "create",
+        "update",
+        "delete",
+        "restore",
+        "rename",
+        "attach",
+        "detach"
+      ]
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "entityType",
+        "entityId",
+        "kind",
+        "version",
+        "contentHash",
+        "updatedAt"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "entityType": {
+          "$ref": "#/$defs/entityType"
+        },
+        "entityId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "kind": {
+          "$ref": "#/$defs/changeKind"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854776000
+        },
+        "contentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "snapshot": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "pullResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "changes",
+        "nextCursor",
+        "hasMore"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/change"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "hasMore": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ackRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "deviceId",
+        "cursor"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        }
+      }
+    },
+    "snapshotResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "snapshotId",
+        "entries",
+        "nextCursor",
+        "hasMore",
+        "resumeCursor"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "snapshotId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/change"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "hasMore": {
+          "type": "boolean"
+        },
+        "resumeCursor": {
+          "$ref": "#/$defs/cursor"
+        }
+      }
+    },
+    "resolutionAction": {
+      "enum": [
+        "keepLocal",
+        "useCloud",
+        "saveCopy",
+        "manualMerge",
+        "restoreVersion"
+      ]
+    },
+    "conflictResolutionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "operationId",
+        "action",
+        "currentVersion",
+        "currentContentHash"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "operationId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "action": {
+          "$ref": "#/$defs/resolutionAction"
+        },
+        "currentVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854776000
+        },
+        "currentContentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "payload": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "newEntityId": {
+          "$ref": "#/$defs/stableId"
+        }
+      }
+    },
+    "errorCode": {
+      "enum": [
+        "SYNC_PROTOCOL_UNSUPPORTED",
+        "SYNC_BATCH_INVALID",
+        "SYNC_BATCH_TOO_LARGE",
+        "SYNC_IDEMPOTENCY_MISMATCH",
+        "SYNC_DEPENDENCY_FAILED",
+        "SYNC_CONFLICT",
+        "SYNC_CURSOR_INVALID",
+        "SYNC_CURSOR_EXPIRED",
+        "SYNC_SNAPSHOT_EXPIRED",
+        "SYNC_ENTITY_FORBIDDEN",
+        "SYNC_ENTITY_NOT_FOUND",
+        "SYNC_ENTITY_SCHEMA_UNSUPPORTED",
+        "SYNC_UPLOAD_EXPIRED",
+        "SYNC_UPLOAD_CHUNK_MISMATCH",
+        "SYNC_ATTACHMENT_HASH_MISMATCH"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
