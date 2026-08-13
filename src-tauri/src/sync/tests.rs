@@ -417,3 +417,28 @@ fn authentication_failure_stops_sync_and_marks_credentials_required() {
     assert_eq!(state.authentication_state, "required");
     assert_eq!(state.runtime_phase, SyncRuntimePhase::Idle);
 }
+
+#[test]
+fn persisted_pause_prevents_network_access() {
+    let (_directory, store, account_id, device_id) = test_store();
+    let transport = Arc::new(MockTransport::default());
+    transport
+        .pulls
+        .lock()
+        .unwrap()
+        .push_back(Err(fatal("NETWORK_MUST_NOT_BE_CALLED")));
+    let worker = SyncWorker::new(
+        store.clone(),
+        transport,
+        account_id.clone(),
+        device_id.clone(),
+    )
+    .unwrap();
+    store
+        .set_sync_paused(&account_id, &device_id, true)
+        .unwrap();
+
+    let report = worker.run_once().unwrap();
+    assert!(report.deferred);
+    assert_eq!(report.deferred_reason, None);
+}

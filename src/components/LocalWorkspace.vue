@@ -60,6 +60,10 @@
             >
               <span><strong>{{ typeLabel(question.type) }}</strong> · {{ question.difficulty }}</span>
               <p>{{ question.text }}</p>
+              <em
+                v-if="questionSyncStatus(question.id)"
+                :class="`entity-sync entity-sync--${questionSyncStatus(question.id)}`"
+              >{{ questionSyncStatus(question.id) }}</em>
               <small>v{{ question.version }} · {{ question.subjects.join(', ') }}</small>
             </button>
             <p v-if="!questions.length" class="empty-state">No questions match this view.</p>
@@ -302,7 +306,10 @@ import { computed, reactive, ref, watch } from 'vue'
 
 import { createLocalWorkspace } from '../application/useLocalWorkspace'
 import type { PaperExportFormat, Question, QuestionInput, QuestionType } from '../types/localEngine'
+import type { SyncStatusSnapshot } from '../types/sync'
 import AppIcon from './AppIcon.vue'
+
+const props = defineProps<{ syncState?: SyncStatusSnapshot | null }>()
 
 const {
   engine, ready, activeTab, questions, nextQuestionCursor, selectedQuestion, importInspection,
@@ -327,6 +334,12 @@ const engineLabel = computed(() => ({
   starting: 'Starting Local Engine', ready: 'Local Engine ready', recovering: 'Recovering Local Engine',
   degraded: 'Local Engine needs attention', stopping: 'Stopping Local Engine'
 })[engine.value?.state ?? 'starting'])
+const questionSyncStates = computed(() => new Map(
+  (props.syncState?.entities ?? [])
+    .filter(entity => entity.entityType === 'question')
+    .map(entity => [entity.entityId, entity.status])
+))
+function questionSyncStatus(id: string) { return questionSyncStates.value.get(id) }
 
 const paperForm = reactive({ title: '', subjects: '', durationMinutes: 60, totalMarks: '100', count: 10, difficultyCoefficient: 0.5 })
 const exportFormats: PaperExportFormat[] = ['docx', 'tex', 'pdf']

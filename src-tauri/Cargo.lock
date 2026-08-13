@@ -5164,6 +5164,7 @@ dependencies = [
  "tempfile",
  "testpapers-cloud-api",
  "tokio",
+ "url",
  "uuid",
 ]
 

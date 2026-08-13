@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "sourceIssue": "CLE-97",
+  "schemaSha256": "4c4b3b3e0cb6765e193608a7118f5416d02773937cc16df1ab9d494dd4ca3d09",
+  "fixturesSha256": "bc29f0ecf66dbeb10a021f7900c0df48365fc19a82d5359436f9a15a50ae334e",
+  "semanticFingerprint": "96698e062cae4d17d9808aba7038ae652e8749cc9fed9b41c55c99d795b8988f"
+}

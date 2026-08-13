@@ -1,7 +1,10 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 use crate::{
-    application::EngineSnapshot,
+    application::{EngineSnapshot, SyncStatusSnapshot},
     workspace_features::jobs::{JobEventSink, JobSnapshot},
 };
 
@@ -15,6 +18,17 @@ pub(crate) const DIALOG_PREVIEWED: &str = "testpapers://shell/dialog-previewed";
 pub(crate) const ENGINE_STATE_CHANGED: &str = "testpapers://engine/state-changed";
 pub(crate) const MAINTENANCE_CHANGED: &str = "testpapers://workspace/maintenance-changed";
 pub(crate) const JOB_UPDATED: &str = "testpapers://jobs/updated";
+pub(crate) const SYNC_STATUS_CHANGED: &str = "testpapers://sync/status-changed";
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SyncStatusChangedEvent {
+    schema_version: u8,
+    #[serde(rename = "type")]
+    event_type: &'static str,
+    occurred_at: u64,
+    state: SyncStatusSnapshot,
+}
 
 pub(crate) struct TauriJobEventSink {
     app: AppHandle,
@@ -50,6 +64,26 @@ pub(crate) fn emit_maintenance_changed(
     snapshot: EngineSnapshot,
 ) -> tauri::Result<()> {
     app.emit_to("main", MAINTENANCE_CHANGED, EngineContextV1::from(snapshot))
+}
+
+pub(crate) fn emit_sync_status_changed(
+    app: &AppHandle,
+    snapshot: SyncStatusSnapshot,
+) -> tauri::Result<()> {
+    let occurred_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| u64::try_from(duration.as_micros()).unwrap_or(u64::MAX))
+        .unwrap_or(0);
+    app.emit_to(
+        "main",
+        SYNC_STATUS_CHANGED,
+        SyncStatusChangedEvent {
+            schema_version: 1,
+            event_type: "sync.statusChanged",
+            occurred_at,
+            state: snapshot,
+        },
+    )
 }
 
 pub(crate) fn emit_close_requested(app: &AppHandle, request_id: u32) -> tauri::Result<()> {

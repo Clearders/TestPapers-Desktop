@@ -12,12 +12,13 @@ use super::{
     StoreConfig,
 };
 
-pub(crate) const LATEST_SCHEMA_VERSION: u32 = 3;
+pub(crate) const LATEST_SCHEMA_VERSION: u32 = 4;
 
 const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../../migrations/0001_local_data.sql")),
     (2, include_str!("../../migrations/0002_sync_state.sql")),
     (3, include_str!("../../migrations/0003_sync_delivery.sql")),
+    (4, include_str!("../../migrations/0004_sync_controls.sql")),
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -273,7 +273,11 @@ impl LocalDataStore {
             transaction.execute(
                 "UPDATE pending_mutations
                  SET request_hash = ?2, stored_response_json = ?3, queue_state = ?4,
-                     last_error_code = CASE WHEN ?4 = 'settled' THEN NULL ELSE ?4 END,
+                     last_error_code = CASE ?4
+                         WHEN 'settled' THEN NULL
+                         WHEN 'conflict' THEN 'SYNC_CONFLICT'
+                         ELSE 'SYNC_OPERATION_FAILED'
+                     END,
                      updated_at = ?5
                  WHERE operation_id = ?1",
                 params![

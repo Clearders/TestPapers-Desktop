@@ -1,14 +1,14 @@
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    application::{EngineSupervisor, ShellApplication},
+    application::{EngineSupervisor, ShellApplication, SyncControlApplication, SyncStatusSnapshot},
     domain::{
         CloseBehavior, CloseDecision, CloseOutcome, DialogPreview, ExportFormat, ThemePreference,
     },
     infrastructure::{dialogs, native},
 };
 
-use super::dto::{CloseResolution, EngineContextV1, EngineErrorV1, ShellContext};
+use super::dto::{CloseResolution, EngineContextV1, EngineErrorV1, ShellContext, SyncSessionInput};
 
 #[tauri::command]
 pub(crate) fn get_engine_context(state: State<'_, EngineSupervisor>) -> EngineContextV1 {
@@ -23,6 +23,60 @@ pub(crate) fn retry_engine_start(
         .retry()
         .map(EngineContextV1::from)
         .map_err(EngineErrorV1::from)
+}
+
+#[tauri::command]
+pub(crate) fn get_sync_status(
+    state: State<'_, SyncControlApplication>,
+) -> Result<SyncStatusSnapshot, String> {
+    state.snapshot()
+}
+
+#[tauri::command]
+pub(crate) fn pause_sync(
+    state: State<'_, SyncControlApplication>,
+) -> Result<SyncStatusSnapshot, String> {
+    state.pause()
+}
+
+#[tauri::command]
+pub(crate) fn resume_sync(
+    state: State<'_, SyncControlApplication>,
+) -> Result<SyncStatusSnapshot, String> {
+    state.resume()
+}
+
+#[tauri::command]
+pub(crate) fn sync_now(
+    state: State<'_, SyncControlApplication>,
+) -> Result<SyncStatusSnapshot, String> {
+    state.sync_now()
+}
+
+#[tauri::command]
+pub(crate) fn retry_sync(
+    state: State<'_, SyncControlApplication>,
+) -> Result<SyncStatusSnapshot, String> {
+    state.retry_now()
+}
+
+#[tauri::command]
+pub(crate) fn configure_sync_session(
+    engine: State<'_, EngineSupervisor>,
+    sync: State<'_, SyncControlApplication>,
+    input: SyncSessionInput,
+) -> Result<SyncStatusSnapshot, String> {
+    input.validate()?;
+    let workspace = engine
+        .workspace()
+        .ok_or_else(|| "The Local Engine must be ready before Sync can start".to_owned())?;
+    sync.configure_cloud_session(
+        workspace.store,
+        input.base_url,
+        input.access_token,
+        input.account_id,
+        input.device_id,
+    )
 }
 
 fn context(app: &AppHandle, state: &ShellApplication) -> Result<ShellContext, String> {

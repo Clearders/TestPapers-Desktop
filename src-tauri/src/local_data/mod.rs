@@ -32,7 +32,10 @@ pub(crate) use sync_delivery::{
     PreparedSyncBatch, PreparedSyncOperation, RemoteEntityBaseline, RemoteSyncChange,
     SyncOperationOutcome,
 };
-pub(crate) use sync_state::{StartupRecoveryReport, SyncDeviceState, SyncRuntimePhase};
+pub(crate) use sync_state::{
+    StartupRecoveryReport, SyncControlData, SyncDeviceState, SyncEntityDeliveryState,
+    SyncRuntimePhase,
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct StoreConfig {

@@ -219,6 +219,7 @@ pub(crate) struct SyncRunReport {
     pub(crate) pushed_operations: u32,
     pub(crate) rebuilt_snapshot: bool,
     pub(crate) deferred: bool,
+    pub(crate) deferred_reason: Option<TransportErrorKind>,
 }
 
 #[derive(Debug)]
@@ -259,6 +260,14 @@ impl<T: SyncTransport> SyncWorker<T> {
     /// Runs a bounded synchronization pass. Callers normally invoke this on a background thread.
     pub(crate) fn run_once(&self) -> Result<SyncRunReport, SyncWorkerError> {
         let mut report = SyncRunReport::default();
+        if self
+            .store
+            .sync_device_state(&self.account_id, &self.device_id)?
+            .is_some_and(|state| state.paused)
+        {
+            report.deferred = true;
+            return Ok(report);
+        }
         self.store.set_sync_runtime_phase(
             &self.account_id,
             &self.device_id,
@@ -457,6 +466,7 @@ impl<T: SyncTransport> SyncWorker<T> {
                 TransportErrorKind::Offline | TransportErrorKind::RateLimited
             ) {
                 report.deferred = true;
+                report.deferred_reason = Some(transport.kind);
             }
         }
         self.store.set_sync_runtime_phase(

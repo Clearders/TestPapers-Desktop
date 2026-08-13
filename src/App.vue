@@ -7,7 +7,17 @@
         <div><strong>TestPapers Desktop</strong><span>Local-first workspace</span></div>
       </div>
       <div class="header-actions">
-        <span class="status-chip status-chip--offline"><span aria-hidden="true" /> Cloud not required</span>
+        <SyncStatusControl
+          :state="syncState"
+          :presentation="syncPresentation"
+          :busy="syncBusy"
+          :error="syncError"
+          @pause="pauseSync"
+          @resume="resumeSync"
+          @sync-now="syncNow"
+          @retry="retrySync"
+          @open-account="preferencesOpen = true"
+        />
         <label class="theme-control">
           <span class="sr-only">Theme</span>
           <AppIcon :name="effectiveTheme === 'dark' ? 'moon' : 'sun'" />
@@ -31,7 +41,7 @@
         <strong>Startup notice</strong>
         <ul><li v-for="warning in context.warnings" :key="warning">{{ warning }}</li></ul>
       </div>
-      <LocalWorkspace />
+      <LocalWorkspace :sync-state="syncState" />
     </main>
 
     <footer class="app-footer">
@@ -71,6 +81,11 @@
           </select>
         </label>
         <p class="field-hint">Choosing “Ask me” restores the first-close prompt.</p>
+        <div class="preferences-section">
+          <strong>Account & Cloud Sync</strong>
+          <p>{{ syncPresentation.description }}</p>
+          <small>Native authentication supplies a short-lived token to the sync client. Tokens are never stored in workspace data or shown in diagnostics.</small>
+        </div>
         <div class="modal-actions"><button class="button button--primary" type="button" @click="preferencesOpen = false">Done</button></div>
       </section>
     </div>
@@ -79,8 +94,10 @@
 
 <script setup lang="ts">
 import { createDesktopShell } from './application/useDesktopShell'
+import { createSyncControl } from './application/useSyncControl'
 import AppIcon from './components/AppIcon.vue'
 import LocalWorkspace from './components/LocalWorkspace.vue'
+import SyncStatusControl from './components/SyncStatusControl.vue'
 import type { CloseBehavior, ThemePreference } from './types/shell'
 
 const {
@@ -94,4 +111,15 @@ const {
   setCloseBehavior,
   resolveClose
 } = createDesktopShell()
+
+const {
+  state: syncState,
+  busy: syncBusy,
+  error: syncError,
+  presentation: syncPresentation,
+  pause: pauseSync,
+  resume: resumeSync,
+  syncNow,
+  retry: retrySync
+} = createSyncControl()
 </script>

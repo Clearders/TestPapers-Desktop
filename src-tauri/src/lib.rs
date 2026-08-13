@@ -19,6 +19,7 @@ use std::{
 
 use application::{
     EngineSupervisor, LocalWorkspaceApplication, PreferencesRepository, ShellApplication,
+    SyncControlApplication,
 };
 use domain::{CloseAction, ThemePreference};
 use infrastructure::{
@@ -37,6 +38,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ipc::commands::get_engine_context,
             ipc::commands::retry_engine_start,
+            ipc::commands::get_sync_status,
+            ipc::commands::pause_sync,
+            ipc::commands::resume_sync,
+            ipc::commands::sync_now,
+            ipc::commands::retry_sync,
+            ipc::commands::configure_sync_session,
             ipc::commands::get_shell_context,
             ipc::commands::frontend_ready,
             ipc::commands::set_theme_preference,
@@ -108,6 +115,10 @@ pub fn run() {
                 workspace_pointer_path,
                 workspace.clone(),
             ));
+            let sync_event_app = app.handle().clone();
+            app.manage(SyncControlApplication::new(Arc::new(move |snapshot| {
+                let _ = ipc::events::emit_sync_status_changed(&sync_event_app, snapshot);
+            })));
 
             let event_app = app.handle().clone();
             let previous_maintenance = Arc::new(AtomicBool::new(false));
