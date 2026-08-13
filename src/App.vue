@@ -41,7 +41,7 @@
         <strong>Startup notice</strong>
         <ul><li v-for="warning in context.warnings" :key="warning">{{ warning }}</li></ul>
       </div>
-      <LocalWorkspace :sync-state="syncState" />
+      <LocalWorkspace :sync-state="syncState" @retry-sync="retrySync" />
     </main>
 
     <footer class="app-footer">

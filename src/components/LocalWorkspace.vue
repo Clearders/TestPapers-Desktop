@@ -110,10 +110,14 @@
                 <small>{{ editingQuestion.images.length }} attached</small>
               </div>
               <ul v-if="editingQuestion.images.length">
-                <li v-for="image in editingQuestion.images" :key="image.attachmentId">
-                  <strong>{{ image.fileName }}</strong>
-                  <small>{{ image.mediaType }} · {{ formatBytes(image.byteSize) }}<template v-if="image.caption"> · {{ image.caption }}</template></small>
-                </li>
+                <AttachmentRecoveryItem
+                  v-for="image in editingQuestion.images"
+                  :key="image.attachmentId"
+                  :image="image"
+                  :status="attachmentSyncStatus(image.attachmentId)"
+                  :error-code="props.syncState?.lastErrorCode"
+                  @retry="$emit('retrySync')"
+                />
               </ul>
               <p v-else class="empty-state">No images attached.</p>
               <template v-if="editingQuestion.deletedAt === null">
@@ -308,8 +312,10 @@ import { createLocalWorkspace } from '../application/useLocalWorkspace'
 import type { PaperExportFormat, Question, QuestionInput, QuestionType } from '../types/localEngine'
 import type { SyncStatusSnapshot } from '../types/sync'
 import AppIcon from './AppIcon.vue'
+import AttachmentRecoveryItem from './AttachmentRecoveryItem.vue'
 
 const props = defineProps<{ syncState?: SyncStatusSnapshot | null }>()
+defineEmits<{ retrySync: [] }>()
 
 const {
   engine, ready, activeTab, questions, nextQuestionCursor, selectedQuestion, importInspection,
@@ -340,6 +346,12 @@ const questionSyncStates = computed(() => new Map(
     .map(entity => [entity.entityId, entity.status])
 ))
 function questionSyncStatus(id: string) { return questionSyncStates.value.get(id) }
+const attachmentSyncStates = computed(() => new Map(
+  (props.syncState?.entities ?? [])
+    .filter(entity => entity.entityType === 'attachment')
+    .map(entity => [entity.entityId, entity.status])
+))
+function attachmentSyncStatus(id: string) { return attachmentSyncStates.value.get(id) }
 
 const paperForm = reactive({ title: '', subjects: '', durationMinutes: 60, totalMarks: '100', count: 10, difficultyCoefficient: 0.5 })
 const exportFormats: PaperExportFormat[] = ['docx', 'tex', 'pdf']
