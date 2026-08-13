@@ -9,6 +9,48 @@ pub(crate) const ENTITY_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
+pub(crate) enum SyncQueueState {
+    Pending,
+    InFlight,
+    Retrying,
+    Conflict,
+    Failed,
+    Settled,
+}
+
+impl fmt::Display for SyncQueueState {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Pending => "pending",
+            Self::InFlight => "in_flight",
+            Self::Retrying => "retrying",
+            Self::Conflict => "conflict",
+            Self::Failed => "failed",
+            Self::Settled => "settled",
+        })
+    }
+}
+
+impl FromStr for SyncQueueState {
+    type Err = LocalDataError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "pending" => Ok(Self::Pending),
+            "in_flight" => Ok(Self::InFlight),
+            "retrying" => Ok(Self::Retrying),
+            "conflict" => Ok(Self::Conflict),
+            "failed" => Ok(Self::Failed),
+            "settled" => Ok(Self::Settled),
+            _ => Err(LocalDataError::Corrupt(format!(
+                "unknown sync queue state {value:?}"
+            ))),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum ReplicationScope {
     LocalPrivate,
     CloudSynced,
@@ -315,6 +357,19 @@ pub(crate) struct PendingMutation {
     pub(crate) mutation_kind: String,
     pub(crate) candidate: Value,
     pub(crate) created_at: i64,
+    pub(crate) account_id: Option<String>,
+    pub(crate) device_id: Option<String>,
+    pub(crate) batch_id: Option<String>,
+    pub(crate) batch_ordinal: u32,
+    pub(crate) queue_state: SyncQueueState,
+    pub(crate) dependencies: Vec<String>,
+    pub(crate) attempt_count: u32,
+    pub(crate) next_attempt_at: Option<i64>,
+    pub(crate) last_attempt_at: Option<i64>,
+    pub(crate) last_error_code: Option<String>,
+    pub(crate) request_hash: Option<String>,
+    pub(crate) stored_response: Option<Value>,
+    pub(crate) updated_at: i64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

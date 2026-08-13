@@ -1,4 +1,5 @@
-//! Reserved cloud synchronization boundary.
+//! Cloud synchronization runtime boundary.
 //!
-//! CLE-23 intentionally contains no network client, queue, or sync behavior. The generated Cloud
-//! contract remains a standalone crate until a later synchronization issue defines the protocol.
+//! CLE-91 adds durable queue, cursor, conflict-baseline, and snapshot-rebuild storage behind the
+//! Local Engine. This module still contains no network transport or background worker; CLE-89 owns
+//! the pull/apply/ack/push runtime that will consume the persistence APIs.

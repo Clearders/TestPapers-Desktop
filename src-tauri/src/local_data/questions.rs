@@ -15,7 +15,7 @@ use super::{
     model::{
         CreateQuestion, DeletedFilter, Difficulty, HistoryAction, MutationBase, PendingMutation,
         QuestionContent, QuestionRecord, QuestionRevision, QuestionSearch, QuestionSearchPage,
-        QuestionType, ReplicationScope, UpdateQuestion, ENTITY_SCHEMA_VERSION,
+        QuestionType, ReplicationScope, SyncQueueState, UpdateQuestion, ENTITY_SCHEMA_VERSION,
     },
     LocalDataStore,
 };
@@ -403,12 +403,17 @@ impl LocalDataStore {
         let connection = self.connection();
         let mut statement = connection.prepare(
             "SELECT operation_id, entity_type, entity_id, base_version, base_content_hash,
-                    mutation_kind, candidate_json, created_at
+                    mutation_kind, candidate_json, created_at, account_id, device_id, batch_id,
+                    batch_ordinal, queue_state, dependencies_json, attempt_count, next_attempt_at,
+                    last_attempt_at, last_error_code, request_hash, stored_response_json, updated_at
              FROM pending_mutations
              ORDER BY created_at, operation_id LIMIT ?1",
         )?;
         let rows = statement.query_map([limit.clamp(1, 500)], |row| {
             let candidate: String = row.get(6)?;
+            let queue_state: String = row.get(12)?;
+            let dependencies: String = row.get(13)?;
+            let stored_response: Option<String> = row.get(19)?;
             Ok(PendingMutation {
                 operation_id: row.get(0)?,
                 entity_type: row.get(1)?,
@@ -418,6 +423,22 @@ impl LocalDataStore {
                 mutation_kind: row.get(5)?,
                 candidate: serde_json::from_str(&candidate).map_err(sql_decode_error)?,
                 created_at: row.get(7)?,
+                account_id: row.get(8)?,
+                device_id: row.get(9)?,
+                batch_id: row.get(10)?,
+                batch_ordinal: row.get(11)?,
+                queue_state: SyncQueueState::from_str(&queue_state).map_err(sql_decode_error)?,
+                dependencies: serde_json::from_str(&dependencies).map_err(sql_decode_error)?,
+                attempt_count: row.get(14)?,
+                next_attempt_at: row.get(15)?,
+                last_attempt_at: row.get(16)?,
+                last_error_code: row.get(17)?,
+                request_hash: row.get(18)?,
+                stored_response: stored_response
+                    .map(|value| serde_json::from_str(&value))
+                    .transpose()
+                    .map_err(sql_decode_error)?,
+                updated_at: row.get(20)?,
             })
         })?;
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
@@ -730,8 +751,8 @@ pub(super) fn append_pending<T: serde::Serialize>(
     transaction.execute(
         "INSERT INTO pending_mutations(
             operation_id, entity_type, entity_id, base_version, base_content_hash,
-            mutation_kind, candidate_json, created_at
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            mutation_kind, candidate_json, created_at, updated_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
         params![
             Uuid::now_v7().to_string(),
             entry.entity_type,

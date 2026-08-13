@@ -12,9 +12,12 @@ use super::{
     StoreConfig,
 };
 
-pub(crate) const LATEST_SCHEMA_VERSION: u32 = 1;
+pub(crate) const LATEST_SCHEMA_VERSION: u32 = 2;
 
-const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../../migrations/0001_local_data.sql"))];
+const MIGRATIONS: &[(u32, &str)] = &[
+    (1, include_str!("../../migrations/0001_local_data.sql")),
+    (2, include_str!("../../migrations/0002_sync_state.sql")),
+];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct MigrationReport {
