@@ -1,6 +1,6 @@
 [package]
 name = "testpapers-cloud-api"
-version = "1.0.0"
+version = "1.2.0"
 authors = ["OpenAPI Generator team and contributors"]
 description = "The canonical HTTP contract for `/api/v1`. Browser clients use Cookie + CSRF authentication; native clients inject Bearer credentials. WebSocket messages are described by `x-testpapers-websocket`."
 # Override this license by providing a License Object in the OpenAPI.

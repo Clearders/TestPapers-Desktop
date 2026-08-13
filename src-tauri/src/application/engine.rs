@@ -620,7 +620,9 @@ mod tests {
     }
 
     fn wait_for(supervisor: &EngineSupervisor, expected: EngineState) -> EngineSnapshot {
-        let deadline = Instant::now() + Duration::from_secs(2);
+        // Full-suite Windows runs start several real SQLite-backed engines concurrently. Keep the
+        // assertion bounded while allowing migration and antivirus I/O contention to settle.
+        let deadline = Instant::now() + Duration::from_secs(10);
         loop {
             let snapshot = supervisor.snapshot();
             if snapshot.state == expected {
@@ -630,7 +632,8 @@ mod tests {
                 Instant::now() < deadline,
                 "engine did not reach {expected:?}"
             );
-            thread::yield_now();
+            // Leave CPU for the supervisor's real worker when readiness tests run concurrently.
+            thread::sleep(Duration::from_millis(1));
         }
     }
 

@@ -1,7 +1,7 @@
 # Sync persistence and restart recovery
 
-CLE-91 adds the durable Desktop boundary for Sync v1. It does not send network requests; the
-pull/apply/ack/push worker is delivered separately by CLE-89.
+CLE-91 adds the durable Desktop boundary for Sync v1. CLE-89 builds the authenticated,
+restart-safe pull/apply/ack/push worker on top of this state; see [sync-worker.md](sync-worker.md).
 
 ## Durable records
 
@@ -27,8 +27,9 @@ operations are never removed by startup recovery.
 
 Every database open runs one immediate SQLite transaction after migrations and integrity checks:
 
-1. `in_flight` operations become `retrying`, retain their payload and attempt count, and receive an
-   immediate retry timestamp.
+1. `in_flight` operations become `retrying`, retain their payload, attempt count, batch ID, and
+   ordinal, and receive an immediate retry timestamp. Preserving the batch makes a response-loss
+   retry an exact server-side idempotent replay.
 2. Non-idle runtime phases reset to `idle` and clear the active batch.
 3. Snapshot rebuilds interrupted during `applying` or `swapping` return to `ready`; staged entries
    remain intact.
@@ -38,7 +39,7 @@ available to the Local Engine for diagnostics without exposing payloads.
 
 ## Migration and rollback
 
-Schema v2 is additive. Desktop copies a v1 database into a staging file, applies the migration,
+Schemas v2 and v3 are additive. Desktop copies an older database into a staging file, applies the migrations,
 backfills `updated_at` from each operation's original `created_at`, runs integrity and foreign-key
 checks, and only then swaps files. The untouched v1 database is retained as the rollback artifact,
 so downgrading restores the original queue rather than trying to destructively reverse new tables.

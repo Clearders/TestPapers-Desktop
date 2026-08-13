@@ -222,7 +222,7 @@ Name | Type | Description  | Required | Notes
 
 ### Authorization
 
-No authorization required
+[csrfToken](../README.md#csrfToken), [cookieAuth](../README.md#cookieAuth), [bearerAuth](../README.md#bearerAuth)
 
 ### HTTP request headers
 
@@ -250,7 +250,7 @@ Name | Type | Description  | Required | Notes
 
 ### Authorization
 
-No authorization required
+[csrfToken](../README.md#csrfToken), [cookieAuth](../README.md#cookieAuth), [bearerAuth](../README.md#bearerAuth)
 
 ### HTTP request headers
 
@@ -275,7 +275,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[csrfToken](../README.md#csrfToken), [cookieAuth](../README.md#cookieAuth)
+[csrfToken](../README.md#csrfToken), [cookieAuth](../README.md#cookieAuth), [bearerAuth](../README.md#bearerAuth)
 
 ### HTTP request headers
 

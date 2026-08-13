@@ -123,6 +123,7 @@ pub mod metadata_api;
 pub mod papers_api;
 pub mod public_banks_api;
 pub mod questions_api;
+pub mod sync_api;
 pub mod tasks_api;
 pub mod users_api;
 

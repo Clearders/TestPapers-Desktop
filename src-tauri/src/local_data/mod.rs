@@ -7,6 +7,7 @@ mod migration;
 mod model;
 mod papers;
 mod questions;
+mod sync_delivery;
 mod sync_state;
 
 use std::{
@@ -26,6 +27,10 @@ pub(crate) use model::{
     MutationBase, NewQuestionAttachment, PendingMutation, QuestionContent, QuestionRecord,
     QuestionRevision, QuestionSearch, QuestionSearchPage, QuestionType, ReplicationScope,
     SyncQueueState, UpdateQuestion,
+};
+pub(crate) use sync_delivery::{
+    PreparedSyncBatch, PreparedSyncOperation, RemoteEntityBaseline, RemoteSyncChange,
+    SyncOperationOutcome,
 };
 pub(crate) use sync_state::{StartupRecoveryReport, SyncDeviceState, SyncRuntimePhase};
 

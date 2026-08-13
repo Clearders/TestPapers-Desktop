@@ -32,7 +32,7 @@ EXPECTED_CONFIG = {
         "hideGenerationTimestamp": True,
         "library": "reqwest",
         "packageName": "testpapers-cloud-api",
-        "packageVersion": "1.0.0",
+        "packageVersion": "1.2.0",
         "supportAsync": True,
         "useSingleRequestParameter": True,
     },
@@ -278,6 +278,10 @@ def normalize_and_patch(output: Path) -> None:
         content = path.read_text(encoding="utf-8")
         content = content.replace(NESTED_MODELS_DEFECT, "models::")
         content = content.replace(UNTYPED_ANY_OF_DEFECT, "serde_json::Value")
+        # OpenAPI Generator emits Literal[true|false] as a string enum, which cannot decode the
+        # API's actual JSON boolean envelope field. Keep the generated field optional but typed as
+        # bool so every success/error envelope is wire compatible.
+        content = content.replace("pub success: Option<Success>,", "pub success: Option<bool>,")
         path.write_text(content, encoding="utf-8", newline="\n")
 
     cargo = output / "Cargo.toml"
@@ -301,6 +305,10 @@ def normalize_and_patch(output: Path) -> None:
         hook,
         f"{hook}\n\n// Handwritten native-client boundary; not emitted by OpenAPI Generator.\n"
         "pub mod adapter;",
+    )
+    lib_content = lib_content.replace(
+        "#![allow(clippy::too_many_arguments)]",
+        "#![allow(clippy::too_many_arguments)]\n#![allow(non_snake_case)]",
     )
     lib.write_text(lib_content, encoding="utf-8", newline="\n")
 

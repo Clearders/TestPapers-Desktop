@@ -376,8 +376,8 @@ pub(super) fn recover_startup(
     let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
     let retryable_operations = transaction.execute(
         "UPDATE pending_mutations
-         SET queue_state = 'retrying', batch_id = NULL, batch_ordinal = 0,
-             next_attempt_at = ?1, last_error_code = 'desktop_restart', updated_at = ?1
+         SET queue_state = 'retrying', next_attempt_at = ?1,
+             last_error_code = 'desktop_restart', updated_at = ?1
          WHERE queue_state = 'in_flight'",
         [now],
     )?;
