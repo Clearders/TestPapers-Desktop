@@ -62,6 +62,15 @@ pub(crate) struct RemoteEntityBaseline {
     pub(crate) snapshot: Option<Value>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PreparedConflictResolution {
+    pub(crate) conflict_id: String,
+    pub(crate) operation_id: String,
+    pub(crate) request_hash: String,
+    pub(crate) action: String,
+    pub(crate) request: Value,
+}
+
 impl LocalDataStore {
     #[cfg(test)]
     pub(crate) fn make_sync_retries_due(&self) -> LocalDataResult<()> {
@@ -73,6 +82,359 @@ impl LocalDataStore {
             )
             .map(|_| ())
             .map_err(Into::into)
+    }
+
+    /// Replaces a push-result placeholder with the immutable three-way Cloud record.
+    pub(crate) fn store_cloud_conflict(
+        &self,
+        account_id: &str,
+        conflict: &Value,
+    ) -> LocalDataResult<()> {
+        validate_canonical_uuid(account_id, "accountId")?;
+        let conflict_id = required_string(conflict, "conflictId")?;
+        let entity_type = required_string(conflict, "entityType")?;
+        let entity_id = required_string(conflict, "entityId")?;
+        let reason = required_string(conflict, "reason")?;
+        validate_canonical_uuid(conflict_id, "conflictId")?;
+        validate_canonical_uuid(entity_id, "entityId")?;
+        if conflict.get("origin").and_then(Value::as_str) != Some("personalSync")
+            || !matches!(
+                entity_type,
+                "question" | "paper" | "draft" | "attachment" | "comment" | "favorite" | "setting"
+            )
+            || !matches!(
+                reason,
+                "concurrentCreate"
+                    | "divergentContent"
+                    | "tombstoneDivergence"
+                    | "restoreDivergence"
+                    | "renameDivergence"
+            )
+        {
+            return Err(LocalDataError::Validation(vec![
+                "Cloud conflict envelope is unsupported".into(),
+            ]));
+        }
+        let local = conflict
+            .get("local")
+            .filter(|value| value.is_object())
+            .ok_or_else(|| LocalDataError::Validation(vec!["local snapshot is required".into()]))?;
+        let cloud = conflict
+            .get("cloud")
+            .filter(|value| value.is_object())
+            .ok_or_else(|| LocalDataError::Validation(vec!["cloud snapshot is required".into()]))?;
+        let cloud_version = cloud
+            .get("version")
+            .and_then(Value::as_i64)
+            .filter(|version| *version >= 1)
+            .ok_or_else(|| LocalDataError::Validation(vec!["cloud version is invalid".into()]))?;
+        let cloud_hash = required_string(cloud, "contentHash")?;
+        validate_sha256(cloud_hash, "cloud contentHash")?;
+        let base = conflict.get("base").filter(|value| !value.is_null());
+        let base_version = base
+            .and_then(|value| value.get("version"))
+            .and_then(Value::as_i64);
+        let base_hash = base
+            .and_then(|value| value.get("contentHash"))
+            .and_then(Value::as_str);
+        if reason == "concurrentCreate" && base.is_some()
+            || reason != "concurrentCreate" && (base_version.is_none() || base_hash.is_none())
+        {
+            return Err(LocalDataError::Validation(vec![
+                "conflict baseline does not match its reason".into(),
+            ]));
+        }
+        if let Some(hash) = base_hash {
+            validate_sha256(hash, "base contentHash")?;
+        }
+        let now = now_micros();
+        self.connection().execute(
+            "INSERT INTO sync_conflict_baselines(
+                conflict_id, account_id, entity_type, entity_id, operation_id,
+                base_version, base_content_hash, base_snapshot_json,
+                local_snapshot_json, cloud_version, cloud_content_hash,
+                cloud_snapshot_json, reason, hydration_state,
+                resolution_state, created_at, updated_at
+             ) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11,
+                       ?12, 'complete', 'unresolved', ?13, ?13)
+             ON CONFLICT(conflict_id) DO UPDATE SET
+                account_id = excluded.account_id,
+                base_version = excluded.base_version,
+                base_content_hash = excluded.base_content_hash,
+                base_snapshot_json = excluded.base_snapshot_json,
+                local_snapshot_json = excluded.local_snapshot_json,
+                cloud_version = excluded.cloud_version,
+                cloud_content_hash = excluded.cloud_content_hash,
+                cloud_snapshot_json = excluded.cloud_snapshot_json,
+                reason = excluded.reason,
+                hydration_state = 'complete',
+                updated_at = excluded.updated_at",
+            params![
+                conflict_id,
+                account_id,
+                entity_type,
+                entity_id,
+                base_version,
+                base_hash,
+                base.map(canonical_json).transpose()?,
+                canonical_json(local)?,
+                cloud_version,
+                cloud_hash,
+                canonical_json(cloud)?,
+                reason,
+                now,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Persists a user decision before transport so a crash cannot lose or duplicate it.
+    pub(crate) fn stage_conflict_resolution(
+        &self,
+        conflict_id: &str,
+        request: &Value,
+    ) -> LocalDataResult<PreparedConflictResolution> {
+        validate_canonical_uuid(conflict_id, "conflictId")?;
+        let request_json = canonical_json(request)?;
+        let request_hash = hex_sha256(request_json.as_bytes());
+        let operation_id = required_string(request, "operationId")?;
+        validate_canonical_uuid(operation_id, "operationId")?;
+        let action = required_string(request, "action")?;
+        validate_resolution_request(request, action)?;
+        let current_version = request
+            .get("currentVersion")
+            .and_then(Value::as_i64)
+            .filter(|version| *version >= 1)
+            .ok_or_else(|| {
+                LocalDataError::Validation(vec!["currentVersion must be positive".into()])
+            })?;
+        let current_hash = required_string(request, "currentContentHash")?;
+        validate_sha256(current_hash, "currentContentHash")?;
+        let now = now_micros();
+        let mut connection = self.connection();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if let Some(existing) = read_resolution_by_operation(&transaction, operation_id)? {
+            if existing.request_hash != request_hash || existing.conflict_id != conflict_id {
+                return Err(LocalDataError::Validation(vec![
+                    "operationId is already associated with different resolution content".into(),
+                ]));
+            }
+            transaction.commit()?;
+            return Ok(existing);
+        }
+        let baseline = transaction
+            .query_row(
+                "SELECT cloud_version, cloud_content_hash, hydration_state, resolution_state
+                 FROM sync_conflict_baselines WHERE conflict_id = ?1",
+                [conflict_id],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| LocalDataError::NotFound {
+                entity: "sync conflict",
+                id: conflict_id.into(),
+            })?;
+        if baseline.2 != "complete" {
+            return Err(LocalDataError::Validation(vec![
+                "conflict snapshots must be downloaded before resolution".into(),
+            ]));
+        }
+        if baseline.0 != current_version || baseline.1 != current_hash {
+            return Err(LocalDataError::StaleBase {
+                current_version: baseline.0,
+                current_content_hash: baseline.1,
+                candidate_id: conflict_id.into(),
+            });
+        }
+        let expected_state = if action == "undo" {
+            "resolved"
+        } else {
+            "unresolved"
+        };
+        if baseline.3 != expected_state {
+            return Err(LocalDataError::Validation(vec![format!(
+                "conflict is not available for {action}"
+            )]));
+        }
+        transaction.execute(
+            "INSERT INTO sync_conflict_resolutions(
+                resolution_id, conflict_id, operation_id, request_hash, action,
+                request_json, state, created_at, updated_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?7)",
+            params![
+                Uuid::now_v7().to_string(),
+                conflict_id,
+                operation_id,
+                request_hash,
+                action,
+                request_json,
+                now,
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE sync_conflict_baselines
+             SET resolution_state = 'resolving', updated_at = ?2 WHERE conflict_id = ?1",
+            params![conflict_id, now],
+        )?;
+        let prepared = read_resolution_by_operation(&transaction, operation_id)?
+            .ok_or_else(|| LocalDataError::Corrupt("staged resolution disappeared".into()))?;
+        transaction.commit()?;
+        Ok(prepared)
+    }
+
+    pub(crate) fn prepare_next_conflict_resolution(
+        &self,
+    ) -> LocalDataResult<Option<PreparedConflictResolution>> {
+        let now = now_micros();
+        let mut connection = self.connection();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let operation_id = transaction
+            .query_row(
+                "SELECT operation_id FROM sync_conflict_resolutions
+                 WHERE state = 'pending' ORDER BY created_at, operation_id LIMIT 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        let Some(operation_id) = operation_id else {
+            transaction.commit()?;
+            return Ok(None);
+        };
+        transaction.execute(
+            "UPDATE sync_conflict_resolutions SET state = 'in_flight', updated_at = ?2
+             WHERE operation_id = ?1 AND state = 'pending'",
+            params![operation_id, now],
+        )?;
+        let prepared = read_resolution_by_operation(&transaction, &operation_id)?;
+        transaction.commit()?;
+        Ok(prepared)
+    }
+
+    pub(crate) fn retry_conflict_resolution(&self, operation_id: &str) -> LocalDataResult<()> {
+        validate_canonical_uuid(operation_id, "operationId")?;
+        let changed = self.connection().execute(
+            "UPDATE sync_conflict_resolutions SET state = 'pending', updated_at = ?2
+             WHERE operation_id = ?1 AND state = 'in_flight'",
+            params![operation_id, now_micros()],
+        )?;
+        if changed == 1 {
+            Ok(())
+        } else {
+            Err(LocalDataError::NotFound {
+                entity: "in-flight conflict resolution",
+                id: operation_id.into(),
+            })
+        }
+    }
+
+    /// Commits the accepted Cloud result and local conflict state in one transaction.
+    pub(crate) fn settle_conflict_resolution(
+        &self,
+        operation_id: &str,
+        response: &Value,
+    ) -> LocalDataResult<()> {
+        validate_canonical_uuid(operation_id, "operationId")?;
+        let response_json = canonical_json(response)?;
+        let mut connection = self.connection();
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let stored = transaction
+            .query_row(
+                "SELECT conflict_id, action, state, response_json
+                 FROM sync_conflict_resolutions WHERE operation_id = ?1",
+                [operation_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| LocalDataError::NotFound {
+                entity: "conflict resolution",
+                id: operation_id.into(),
+            })?;
+        if stored.2 == "accepted" {
+            if stored.3.as_deref() == Some(response_json.as_str()) {
+                transaction.commit()?;
+                return Ok(());
+            }
+            return Err(LocalDataError::Corrupt(
+                "a replayed resolution produced a different response".into(),
+            ));
+        }
+        if stored.2 != "in_flight"
+            || required_string(response, "operationId")? != operation_id
+            || required_string(response, "conflictId")? != stored.0
+            || required_string(response, "action")? != stored.1
+        {
+            return Err(LocalDataError::Validation(vec![
+                "resolution response does not match the in-flight request".into(),
+            ]));
+        }
+        let accepted_version = response
+            .get("acceptedVersion")
+            .and_then(Value::as_i64)
+            .filter(|version| *version >= 1)
+            .ok_or_else(|| LocalDataError::Validation(vec!["acceptedVersion is invalid".into()]))?;
+        let accepted_hash = required_string(response, "acceptedContentHash")?;
+        validate_sha256(accepted_hash, "acceptedContentHash")?;
+        let result_snapshot = response
+            .get("result")
+            .filter(|result| result.is_object())
+            .ok_or_else(|| {
+                LocalDataError::Validation(vec!["result snapshot is required".into()])
+            })?;
+        transaction.execute(
+            "UPDATE sync_conflict_resolutions
+             SET state = 'accepted', response_json = ?2, updated_at = ?3
+             WHERE operation_id = ?1",
+            params![operation_id, response_json, now_micros()],
+        )?;
+        if stored.1 == "saveCopy" {
+            transaction.execute(
+                "UPDATE sync_conflict_baselines
+                 SET resolution_state = 'resolved', updated_at = ?2 WHERE conflict_id = ?1",
+                params![stored.0, now_micros()],
+            )?;
+        } else {
+            transaction.execute(
+                "UPDATE sync_conflict_baselines
+                 SET cloud_version = ?2, cloud_content_hash = ?3, cloud_snapshot_json = ?4,
+                     resolution_state = ?5, updated_at = ?6 WHERE conflict_id = ?1",
+                params![
+                    stored.0,
+                    accepted_version,
+                    accepted_hash,
+                    canonical_json(result_snapshot)?,
+                    if stored.1 == "undo" {
+                        "undone"
+                    } else {
+                        "resolved"
+                    },
+                    now_micros(),
+                ],
+            )?;
+        }
+        transaction.execute(
+            "UPDATE pending_mutations SET queue_state = 'settled', last_error_code = NULL,
+                    updated_at = ?2
+             WHERE operation_id = (
+                 SELECT operation_id FROM sync_conflict_baselines WHERE conflict_id = ?1
+             ) AND queue_state = 'conflict'",
+            params![stored.0, now_micros()],
+        )?;
+        transaction.commit()?;
+        Ok(())
     }
 
     pub(crate) fn prepare_sync_batch(
@@ -288,6 +650,42 @@ impl LocalDataStore {
                     now
                 ],
             )?;
+            if queue_state == "conflict" {
+                let conflict_id = outcome.conflict_id.as_deref().ok_or_else(|| {
+                    LocalDataError::Corrupt("conflict result omitted conflictId".into())
+                })?;
+                validate_canonical_uuid(conflict_id, "conflictId")?;
+                let cloud_version = outcome.entity_version.ok_or_else(|| {
+                    LocalDataError::Corrupt("conflict result omitted entityVersion".into())
+                })?;
+                let cloud_hash = outcome.content_hash.as_deref().ok_or_else(|| {
+                    LocalDataError::Corrupt("conflict result omitted contentHash".into())
+                })?;
+                validate_sha256(cloud_hash, "contentHash")?;
+                transaction.execute(
+                    "INSERT OR IGNORE INTO sync_conflict_baselines(
+                        conflict_id, account_id, entity_type, entity_id, operation_id,
+                        base_version, base_content_hash, base_snapshot_json,
+                        local_snapshot_json, cloud_version, cloud_content_hash,
+                        cloud_snapshot_json, reason, hydration_state,
+                        resolution_state, created_at, updated_at
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, ?9, ?10,
+                               'null', NULL, 'placeholder', 'unresolved', ?11, ?11)",
+                    params![
+                        conflict_id,
+                        account_id,
+                        operation.entity_type,
+                        operation.entity_id,
+                        operation.operation_id,
+                        operation.base_version,
+                        operation.base_content_hash,
+                        canonical_json(&operation.payload)?,
+                        cloud_version,
+                        cloud_hash,
+                        now,
+                    ],
+                )?;
+            }
             if matches!(queue_state, "settled") {
                 if let (Some(version), Some(content_hash)) =
                     (outcome.entity_version, outcome.content_hash.as_deref())
@@ -747,17 +1145,24 @@ fn apply_remote_change(
     validate_remote_change(change)?;
     let existing = transaction
         .query_row(
-            "SELECT version, content_hash FROM sync_remote_entities
+            "SELECT version, content_hash, snapshot_json FROM sync_remote_entities
              WHERE account_id = ?1 AND entity_type = ?2 AND entity_id = ?3",
             params![account_id, change.entity_type, change.entity_id],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
         )
         .optional()?;
-    if let Some((version, hash)) = existing {
-        if version > change.version || (version == change.version && hash == change.content_hash) {
+    if let Some((version, hash, _)) = existing.as_ref() {
+        if *version > change.version || (*version == change.version && hash == &change.content_hash)
+        {
             return Ok(());
         }
-        if version == change.version {
+        if *version == change.version {
             return Err(LocalDataError::Corrupt(
                 "the same remote entity version has divergent content hashes".into(),
             ));
@@ -786,25 +1191,40 @@ fn apply_remote_change(
         if sync_payload_hash(Some(&serde_json::from_str(&candidate_json)?))? != change.content_hash
         {
             let conflict_id = Uuid::now_v7().to_string();
+            let base_snapshot = existing
+                .as_ref()
+                .filter(|(version, hash, _)| {
+                    Some(*version) == base_version && Some(hash.as_str()) == base_hash.as_deref()
+                })
+                .map(|(_, _, snapshot)| snapshot.as_str());
+            let reason = if change.kind == "delete" {
+                "tombstoneDivergence"
+            } else {
+                "divergentContent"
+            };
             transaction.execute(
                 "INSERT INTO sync_conflict_baselines(
-                    conflict_id, entity_type, entity_id, operation_id,
+                    conflict_id, account_id, entity_type, entity_id, operation_id,
                     base_version, base_content_hash, base_snapshot_json,
                     local_snapshot_json, cloud_version, cloud_content_hash,
-                    cloud_snapshot_json, resolution_state, created_at, updated_at
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9, ?10,
-                           'unresolved', ?11, ?11)",
+                    cloud_snapshot_json, reason, hydration_state,
+                    resolution_state, created_at, updated_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
+                           ?13, 'complete', 'unresolved', ?14, ?14)",
                 params![
                     conflict_id,
+                    account_id,
                     change.entity_type,
                     change.entity_id,
                     operation_id,
                     base_version,
                     base_hash,
+                    base_snapshot,
                     candidate_json,
                     change.version,
                     change.content_hash,
                     canonical_json(&change.snapshot)?,
+                    reason,
                     now_micros(),
                 ],
             )?;
@@ -877,6 +1297,88 @@ fn validate_remote_change(change: &RemoteSyncChange) -> LocalDataResult<()> {
         ]));
     }
     Ok(())
+}
+
+fn required_string<'a>(value: &'a Value, field: &str) -> LocalDataResult<&'a str> {
+    value.get(field).and_then(Value::as_str).ok_or_else(|| {
+        LocalDataError::Validation(vec![format!("{field} must be a non-empty string")])
+    })
+}
+
+fn validate_sha256(value: &str, field: &str) -> LocalDataResult<()> {
+    if value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        Ok(())
+    } else {
+        Err(LocalDataError::Validation(vec![format!(
+            "{field} must be a lowercase SHA-256 hex digest"
+        )]))
+    }
+}
+
+fn validate_resolution_request(request: &Value, action: &str) -> LocalDataResult<()> {
+    if request.get("protocolVersion").and_then(Value::as_i64) != Some(1) {
+        return Err(LocalDataError::Validation(vec![
+            "protocolVersion must be 1".into(),
+        ]));
+    }
+    if !matches!(
+        action,
+        "keepLocal" | "useCloud" | "saveCopy" | "manualMerge" | "restoreVersion" | "undo"
+    ) {
+        return Err(LocalDataError::Validation(vec![
+            "resolution action is unsupported".into(),
+        ]));
+    }
+    let has_new_entity = request
+        .get("newEntityId")
+        .is_some_and(|value| !value.is_null());
+    let has_undo = request
+        .get("undoesResolutionId")
+        .is_some_and(|value| !value.is_null());
+    let has_payload = request.get("payload").is_some_and(|value| !value.is_null());
+    if (action == "saveCopy") != has_new_entity
+        || (action == "undo") != has_undo
+        || (action == "manualMerge" && !has_payload)
+    {
+        return Err(LocalDataError::Validation(vec![
+            "resolution action-specific fields are invalid".into(),
+        ]));
+    }
+    if let Some(new_entity_id) = request.get("newEntityId").and_then(Value::as_str) {
+        validate_canonical_uuid(new_entity_id, "newEntityId")?;
+    }
+    if let Some(undo_id) = request.get("undoesResolutionId").and_then(Value::as_str) {
+        validate_canonical_uuid(undo_id, "undoesResolutionId")?;
+    }
+    Ok(())
+}
+
+fn read_resolution_by_operation(
+    transaction: &Transaction<'_>,
+    operation_id: &str,
+) -> LocalDataResult<Option<PreparedConflictResolution>> {
+    transaction
+        .query_row(
+            "SELECT conflict_id, operation_id, request_hash, action, request_json
+             FROM sync_conflict_resolutions WHERE operation_id = ?1",
+            [operation_id],
+            |row| {
+                let request_json = row.get::<_, String>(4)?;
+                Ok(PreparedConflictResolution {
+                    conflict_id: row.get(0)?,
+                    operation_id: row.get(1)?,
+                    request_hash: row.get(2)?,
+                    action: row.get(3)?,
+                    request: serde_json::from_str(&request_json).map_err(sql_json_error)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(Into::into)
 }
 
 fn sql_json_error(error: serde_json::Error) -> rusqlite::Error {

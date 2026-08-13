@@ -29,8 +29,8 @@ pub(crate) use model::{
     SyncQueueState, UpdateQuestion,
 };
 pub(crate) use sync_delivery::{
-    PreparedSyncBatch, PreparedSyncOperation, RemoteEntityBaseline, RemoteSyncChange,
-    SyncOperationOutcome,
+    PreparedConflictResolution, PreparedSyncBatch, PreparedSyncOperation, RemoteEntityBaseline,
+    RemoteSyncChange, SyncOperationOutcome,
 };
 pub(crate) use sync_state::{
     StartupRecoveryReport, SyncControlData, SyncDeviceState, SyncEntityDeliveryState,

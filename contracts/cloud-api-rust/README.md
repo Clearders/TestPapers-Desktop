@@ -101,9 +101,18 @@ Class | Method | HTTP request | Description
 *QuestionsApi* | [**update_question**](docs/QuestionsApi.md#update_question) | **PATCH** /api/v1/questions/{question_public_id} | Update Question
 *QuestionsApi* | [**update_question_correction**](docs/QuestionsApi.md#update_question_correction) | **PATCH** /api/v1/questions/{question_public_id}/corrections/{correction_id} | Update Question Correction
 *SyncApi* | [**ack_sync_cursor**](docs/SyncApi.md#ack_sync_cursor) | **POST** /api/v1/sync/ack | Ack Sync Cursor
+*SyncApi* | [**complete_sync_attachment_upload**](docs/SyncApi.md#complete_sync_attachment_upload) | **POST** /api/v1/sync/attachments/uploads/{upload_id}/complete | Complete Sync Attachment Upload
+*SyncApi* | [**download_sync_attachment**](docs/SyncApi.md#download_sync_attachment) | **GET** /api/v1/sync/attachments/{attachment_id}/content | Download Sync Attachment
+*SyncApi* | [**get_sync_attachment_upload**](docs/SyncApi.md#get_sync_attachment_upload) | **GET** /api/v1/sync/attachments/uploads/{upload_id} | Get Sync Attachment Upload
+*SyncApi* | [**get_sync_conflict**](docs/SyncApi.md#get_sync_conflict) | **GET** /api/v1/sync/conflicts/{conflict_id} | Get Sync Conflict
 *SyncApi* | [**get_sync_snapshot**](docs/SyncApi.md#get_sync_snapshot) | **GET** /api/v1/sync/snapshot | Get Sync Snapshot
+*SyncApi* | [**initiate_sync_attachment_upload**](docs/SyncApi.md#initiate_sync_attachment_upload) | **POST** /api/v1/sync/attachments/uploads | Initiate Sync Attachment Upload
+*SyncApi* | [**list_sync_entity_versions**](docs/SyncApi.md#list_sync_entity_versions) | **GET** /api/v1/sync/entities/{entity_type}/{entity_id}/versions | List Sync Entity Versions
 *SyncApi* | [**pull_sync_changes**](docs/SyncApi.md#pull_sync_changes) | **GET** /api/v1/sync/pull | Pull Sync Changes
 *SyncApi* | [**push_sync_mutations**](docs/SyncApi.md#push_sync_mutations) | **POST** /api/v1/sync/push | Push Sync Mutations
+*SyncApi* | [**put_sync_attachment_chunk**](docs/SyncApi.md#put_sync_attachment_chunk) | **PUT** /api/v1/sync/attachments/uploads/{upload_id}/chunks/{ordinal} | Put Sync Attachment Chunk
+*SyncApi* | [**resolve_sync_conflict**](docs/SyncApi.md#resolve_sync_conflict) | **POST** /api/v1/sync/conflicts/{conflict_id}/resolve | Resolve Sync Conflict
+*SyncApi* | [**restore_sync_entity_version**](docs/SyncApi.md#restore_sync_entity_version) | **POST** /api/v1/sync/entities/{entity_type}/{entity_id}/versions/{version}/restore | Restore Sync Entity Version
 *TasksApi* | [**task_cleanup_expired_sessions**](docs/TasksApi.md#task_cleanup_expired_sessions) | **POST** /api/v1/tasks/cleanup-expired-sessions | Task Cleanup Expired Sessions
 *TasksApi* | [**task_compute_question_stats**](docs/TasksApi.md#task_compute_question_stats) | **POST** /api/v1/tasks/stats/questions | Task Compute Question Stats
 *TasksApi* | [**task_export_paper**](docs/TasksApi.md#task_export_paper) | **POST** /api/v1/tasks/export-paper/{paper_public_id} | Task Export Paper
@@ -121,6 +130,10 @@ Class | Method | HTTP request | Description
 
  - [Answer](docs/Answer.md)
  - [Answer1](docs/Answer1.md)
+ - [AttachmentChunkReceipt](docs/AttachmentChunkReceipt.md)
+ - [AttachmentUploadCompleteRequest](docs/AttachmentUploadCompleteRequest.md)
+ - [AttachmentUploadInitiateRequest](docs/AttachmentUploadInitiateRequest.md)
+ - [AttachmentUploadStatus](docs/AttachmentUploadStatus.md)
  - [AuthConnectedEvent](docs/AuthConnectedEvent.md)
  - [AuthConnectedPayload](docs/AuthConnectedPayload.md)
  - [AuthSession](docs/AuthSession.md)
@@ -161,6 +174,8 @@ Class | Method | HTTP request | Description
  - [DraftSubscribeEvent](docs/DraftSubscribeEvent.md)
  - [DraftUnsubscribeEvent](docs/DraftUnsubscribeEvent.md)
  - [DraftUserRef](docs/DraftUserRef.md)
+ - [EnvelopeAttachmentChunkReceipt](docs/EnvelopeAttachmentChunkReceipt.md)
+ - [EnvelopeAttachmentUploadStatus](docs/EnvelopeAttachmentUploadStatus.md)
  - [EnvelopeAuthSession](docs/EnvelopeAuthSession.md)
  - [EnvelopeBankPublicationEntity](docs/EnvelopeBankPublicationEntity.md)
  - [EnvelopeBankSubscriptionEntity](docs/EnvelopeBankSubscriptionEntity.md)
@@ -175,6 +190,7 @@ Class | Method | HTTP request | Description
  - [EnvelopeListQuestionEntity](docs/EnvelopeListQuestionEntity.md)
  - [EnvelopeListQuestionRevisionEntity](docs/EnvelopeListQuestionRevisionEntity.md)
  - [EnvelopeListStr](docs/EnvelopeListStr.md)
+ - [EnvelopeListSyncEntityVersionRecord](docs/EnvelopeListSyncEntityVersionRecord.md)
  - [EnvelopeListUserEntity](docs/EnvelopeListUserEntity.md)
  - [EnvelopePaginatedResponseQuestionEntity](docs/EnvelopePaginatedResponseQuestionEntity.md)
  - [EnvelopePaperDraftDetail](docs/EnvelopePaperDraftDetail.md)
@@ -185,9 +201,12 @@ Class | Method | HTTP request | Description
  - [EnvelopeQuestionCorrectionEntity](docs/EnvelopeQuestionCorrectionEntity.md)
  - [EnvelopeQuestionEntity](docs/EnvelopeQuestionEntity.md)
  - [EnvelopeSyncAckResponse](docs/EnvelopeSyncAckResponse.md)
+ - [EnvelopeSyncConflictRecord](docs/EnvelopeSyncConflictRecord.md)
+ - [EnvelopeSyncConflictResolutionRecord](docs/EnvelopeSyncConflictResolutionRecord.md)
  - [EnvelopeSyncPullResponse](docs/EnvelopeSyncPullResponse.md)
  - [EnvelopeSyncPushResponse](docs/EnvelopeSyncPushResponse.md)
  - [EnvelopeSyncSnapshotResponse](docs/EnvelopeSyncSnapshotResponse.md)
+ - [EnvelopeSyncVersionRestoreRecord](docs/EnvelopeSyncVersionRestoreRecord.md)
  - [EnvelopeTokenPair](docs/EnvelopeTokenPair.md)
  - [EnvelopeUnionPaperExpandedEntityPaperEntity](docs/EnvelopeUnionPaperExpandedEntityPaperEntity.md)
  - [EnvelopeUserEntity](docs/EnvelopeUserEntity.md)
@@ -267,7 +286,13 @@ Class | Method | HTTP request | Description
  - [SyncAckRequest](docs/SyncAckRequest.md)
  - [SyncAckResponse](docs/SyncAckResponse.md)
  - [SyncChange](docs/SyncChange.md)
+ - [SyncConflictReason](docs/SyncConflictReason.md)
+ - [SyncConflictRecord](docs/SyncConflictRecord.md)
+ - [SyncConflictResolutionRecord](docs/SyncConflictResolutionRecord.md)
+ - [SyncConflictResolutionRequest](docs/SyncConflictResolutionRequest.md)
+ - [SyncConflictSnapshot](docs/SyncConflictSnapshot.md)
  - [SyncEntityType](docs/SyncEntityType.md)
+ - [SyncEntityVersionRecord](docs/SyncEntityVersionRecord.md)
  - [SyncError](docs/SyncError.md)
  - [SyncErrorCode](docs/SyncErrorCode.md)
  - [SyncMutation](docs/SyncMutation.md)
@@ -277,7 +302,10 @@ Class | Method | HTTP request | Description
  - [SyncPullResponse](docs/SyncPullResponse.md)
  - [SyncPushRequest](docs/SyncPushRequest.md)
  - [SyncPushResponse](docs/SyncPushResponse.md)
+ - [SyncResolutionAction](docs/SyncResolutionAction.md)
  - [SyncSnapshotResponse](docs/SyncSnapshotResponse.md)
+ - [SyncVersionRestoreRecord](docs/SyncVersionRestoreRecord.md)
+ - [SyncVersionRestoreRequest](docs/SyncVersionRestoreRequest.md)
  - [TokenPair](docs/TokenPair.md)
  - [UserCreate](docs/UserCreate.md)
  - [UserEntity](docs/UserEntity.md)

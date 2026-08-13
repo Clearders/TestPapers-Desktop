@@ -5141,6 +5141,8 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "serde_with",
+ "tokio",
+ "tokio-util",
  "url",
  "uuid",
 ]
@@ -5297,6 +5299,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "libc",
  "pin-project-lite",
  "tokio",
 ]
