@@ -4,6 +4,7 @@ mod infrastructure;
 mod ipc;
 #[allow(dead_code, unused_imports)]
 mod local_data;
+#[allow(dead_code)]
 mod sync;
 #[allow(dead_code, unused_imports)]
 mod workspace_features;

@@ -142,6 +142,7 @@ fn new_database_is_migrated_and_bound_to_workspace_identity() {
         "sync_conflict_baselines",
         "sync_snapshot_rebuilds",
         "sync_snapshot_entries",
+        "sync_remote_entities",
     ] {
         assert!(
             tables.iter().any(|table| table == required),
@@ -264,7 +265,7 @@ fn version_one_sync_migration_preserves_queue_and_rollback_downgrade() {
     .unwrap();
 
     assert_eq!(store.migration_report().from_version, 1);
-    assert_eq!(store.migration_report().to_version, 2);
+    assert_eq!(store.migration_report().to_version, LATEST_SCHEMA_VERSION);
     let pending = store.list_pending_mutations(10).unwrap();
     assert_eq!(pending.len(), 1);
     assert_eq!(pending[0].operation_id, operation_id);
@@ -471,8 +472,8 @@ fn startup_recovery_is_atomic_idempotent_and_preserves_unacked_work() {
     assert_eq!(pending[0].queue_state, SyncQueueState::Retrying);
     assert_eq!(pending[0].attempt_count, 2);
     assert!(pending[0].next_attempt_at.is_some());
-    assert_eq!(pending[0].batch_id, None);
-    assert_eq!(pending[0].batch_ordinal, 0);
+    assert_eq!(pending[0].batch_id.as_deref(), Some(batch_id.as_str()));
+    assert_eq!(pending[0].batch_ordinal, 4);
     let device = reopened
         .sync_device_state(&account_id, &device_id)
         .unwrap()

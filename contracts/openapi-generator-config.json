@@ -4,7 +4,7 @@
     "hideGenerationTimestamp": true,
     "library": "reqwest",
     "packageName": "testpapers-cloud-api",
-    "packageVersion": "1.0.0",
+    "packageVersion": "1.2.0",
     "supportAsync": true,
     "useSingleRequestParameter": true
   },
