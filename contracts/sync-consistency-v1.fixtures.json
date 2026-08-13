@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "dslVersion": "sync-consistency/v1",
+  "scenarios": [
+    {
+      "id": "create-update-delete-restore",
+      "seed": 96001,
+      "devices": ["desktop-a", "web-b"],
+      "operations": [
+        {
+          "operationId": "life-1",
+          "device": "desktop-a",
+          "entityType": "question",
+          "entityId": "question-1",
+          "kind": "create",
+          "payload": { "answer": "4", "text": "2 + 2" }
+        },
+        {
+          "operationId": "life-2",
+          "device": "desktop-a",
+          "entityType": "question",
+          "entityId": "question-1",
+          "kind": "update",
+          "baseVersion": 1,
+          "payload": { "answer": "4", "text": "2 + 2 = ?" }
+        },
+        {
+          "operationId": "life-3",
+          "device": "web-b",
+          "entityType": "question",
+          "entityId": "question-1",
+          "kind": "delete",
+          "baseVersion": 2
+        },
+        {
+          "operationId": "life-4",
+          "device": "desktop-a",
+          "entityType": "question",
+          "entityId": "question-1",
+          "kind": "restore",
+          "baseVersion": 3,
+          "payload": { "answer": "4", "text": "Restored question" }
+        }
+      ],
+      "expected": {
+        "entities": [
+          {
+            "entityType": "question",
+            "entityId": "question-1",
+            "version": 4,
+            "tombstone": false,
+            "payload": { "answer": "4", "text": "Restored question" }
+          }
+        ],
+        "conflicts": [],
+        "operationResults": [
+          { "operationId": "life-1", "status": "applied", "acceptedVersion": 1 },
+          { "operationId": "life-2", "status": "applied", "acceptedVersion": 2 },
+          { "operationId": "life-3", "status": "applied", "acceptedVersion": 3 },
+          { "operationId": "life-4", "status": "applied", "acceptedVersion": 4 }
+        ]
+      }
+    },
+    {
+      "id": "stale-update-preserves-cloud",
+      "seed": 96002,
+      "devices": ["web-a", "desktop-b"],
+      "operations": [
+        {
+          "operationId": "conflict-1",
+          "device": "web-a",
+          "entityType": "paper",
+          "entityId": "paper-1",
+          "kind": "create",
+          "payload": { "title": "Baseline" }
+        },
+        {
+          "operationId": "conflict-2",
+          "device": "web-a",
+          "entityType": "paper",
+          "entityId": "paper-1",
+          "kind": "update",
+          "baseVersion": 1,
+          "payload": { "title": "Cloud edit" }
+        },
+        {
+          "operationId": "conflict-3",
+          "device": "desktop-b",
+          "entityType": "paper",
+          "entityId": "paper-1",
+          "kind": "update",
+          "baseVersion": 1,
+          "payload": { "title": "Offline edit" }
+        }
+      ],
+      "expected": {
+        "entities": [
+          {
+            "entityType": "paper",
+            "entityId": "paper-1",
+            "version": 2,
+            "tombstone": false,
+            "payload": { "title": "Cloud edit" }
+          }
+        ],
+        "conflicts": [
+          {
+            "operationId": "conflict-3",
+            "device": "desktop-b",
+            "entityType": "paper",
+            "entityId": "paper-1",
+            "kind": "update",
+            "baseVersion": 1,
+            "cloudVersion": 2,
+            "reason": "divergentContent"
+          }
+        ],
+        "operationResults": [
+          { "operationId": "conflict-1", "status": "applied", "acceptedVersion": 1 },
+          { "operationId": "conflict-2", "status": "applied", "acceptedVersion": 2 },
+          {
+            "operationId": "conflict-3",
+            "status": "conflict",
+            "cloudVersion": 2,
+            "reason": "divergentContent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "attachment-detach-and-resume",
+      "seed": 96003,
+      "devices": ["mobile-contract", "desktop-a"],
+      "operations": [
+        {
+          "operationId": "blob-1",
+          "device": "mobile-contract",
+          "entityType": "attachment",
+          "entityId": "attachment-1",
+          "kind": "attach",
+          "payload": {
+            "ownerEntityId": "question-1",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size": 12
+          }
+        },
+        {
+          "operationId": "blob-2",
+          "device": "desktop-a",
+          "entityType": "attachment",
+          "entityId": "attachment-1",
+          "kind": "detach",
+          "baseVersion": 1
+        },
+        {
+          "operationId": "blob-3",
+          "device": "mobile-contract",
+          "entityType": "attachment",
+          "entityId": "attachment-1",
+          "kind": "attach",
+          "baseVersion": 2,
+          "payload": {
+            "ownerEntityId": "question-1",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size": 12
+          }
+        },
+        {
+          "operationId": "blob-4",
+          "device": "desktop-a",
+          "entityType": "attachment",
+          "entityId": "attachment-1",
+          "kind": "detach",
+          "baseVersion": 1
+        }
+      ],
+      "expected": {
+        "entities": [
+          {
+            "entityType": "attachment",
+            "entityId": "attachment-1",
+            "version": 3,
+            "tombstone": false,
+            "payload": {
+              "ownerEntityId": "question-1",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "size": 12
+            }
+          }
+        ],
+        "conflicts": [
+          {
+            "operationId": "blob-4",
+            "device": "desktop-a",
+            "entityType": "attachment",
+            "entityId": "attachment-1",
+            "kind": "detach",
+            "baseVersion": 1,
+            "cloudVersion": 3,
+            "reason": "divergentContent"
+          }
+        ],
+        "operationResults": [
+          { "operationId": "blob-1", "status": "applied", "acceptedVersion": 1 },
+          { "operationId": "blob-2", "status": "applied", "acceptedVersion": 2 },
+          { "operationId": "blob-3", "status": "applied", "acceptedVersion": 3 },
+          {
+            "operationId": "blob-4",
+            "status": "conflict",
+            "cloudVersion": 3,
+            "reason": "divergentContent"
+          }
+        ]
+      }
+    }
+  ]
+}
